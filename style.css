@@ -15,16 +15,18 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--paper);overflow:hidden;overscroll-behavior:none}
+html,body{height:100%;min-height:100vh;min-height:100dvh;background:var(--paper);overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
+html{transition:background-color .15s}
 body{font-family:var(--ar);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;transition:background-color .15s}
 body:not(.phase-intro){background:#000}
 .mono{font-family:var(--mono)}
 
-#stage{position:fixed;inset:0;overflow:hidden}
+#stage{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overflow:hidden}
+:fullscreen #stage{height:100%}
 .scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:calc(24px + var(--safe-t)) 20px calc(24px + var(--safe-b));opacity:0;visibility:hidden;transition:opacity .5s ease,visibility 0s .5s}
-.phase-intro #intro,.phase-safe #safe,.phase-final #final{opacity:1;visibility:visible;transition:opacity .5s ease,visibility 0s}
+.phase-intro #intro,.phase-safe #safe{opacity:1;visibility:visible;transition:opacity .5s ease,visibility 0s}
 
 /* ---------- INTRO ---------- */
 #intro{background:
@@ -51,36 +53,14 @@ body:not(.phase-intro){background:#000}
 .phase-safe .shield{animation:glowOk 2s ease-in-out 1s infinite alternate}
 @keyframes glowOk{from{filter:drop-shadow(0 0 0 #2ee59d00)}to{filter:drop-shadow(0 0 22px #2ee59d66)}}
 .safe-1{font-size:clamp(28px,8.6vw,44px);line-height:1.3;font-weight:700}
-.safe-2{font-size:clamp(18px,5.4vw,26px);color:#c9d6d0;font-weight:400}
-.safe-3{margin-top:30px;font-size:clamp(23px,7vw,36px);line-height:1.4;font-weight:700;max-width:17ch}
-.safe-3 mark{background:none;color:var(--red);text-shadow:0 0 18px #ff1f3d88}
+.safe-2{font-size:clamp(20px,6vw,28px);line-height:1.45;color:#dfe8e4;font-weight:400;margin-top:4px}
 
 /* text reveal */
 .reveal{opacity:0;transform:translateY(18px);filter:blur(8px);transition:opacity .6s ease,transform .7s cubic-bezier(.2,.8,.2,1),filter .6s ease}
 .reveal.in{opacity:1;transform:none;filter:none}
 
-/* ---------- FINAL ---------- */
-#final{background:#000;color:#fff;text-align:center;justify-content:space-evenly}
-#final::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 45% at 50% 78%,#ff1f3d2e,transparent 70%);pointer-events:none}
-.final-lines{display:flex;flex-direction:column;gap:10px;position:relative}
-.f1{font-size:clamp(28px,8.6vw,46px);font-weight:700;line-height:1.3}
-.f2{font-size:clamp(22px,6.6vw,34px);color:#d6d6dc;font-weight:400}
-.f3{font-size:clamp(46px,15vw,82px);font-weight:700;color:var(--red);line-height:1.2;margin-top:8px;text-shadow:0 0 30px #ff1f3d77}
-.f3.in{animation:pop .7s cubic-bezier(.2,1.4,.4,1)}
-@keyframes pop{0%{transform:scale(1.35);filter:blur(6px)}100%{transform:none}}
-.brand{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
-.brand.in{transition-duration:1s}
-#brandLogo{max-width:min(62vw,280px);max-height:24vh;object-fit:contain;display:block}
-.brand-word{display:flex;align-items:center;gap:12px;direction:rtl;position:relative;overflow:hidden;padding:4px 10px}
-.brand-word::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,#ffffff55,transparent);transform:skewX(-20deg)}
-.brand.in .brand-word::after{animation:shine 1.4s ease .5s}
-@keyframes shine{to{left:130%}}
-.bw-mark{width:clamp(44px,13vw,64px);color:var(--red);filter:drop-shadow(0 0 10px #ff1f3d88)}
-.bw-mark svg{display:block;width:100%}
-.bw-text{font-size:clamp(52px,17vw,88px);font-weight:700;line-height:1}
-.brand-tag{font-size:clamp(14px,4.2vw,18px);color:#d0d0d6;margin-top:4px}
-.brand-club{font-size:12px;color:#8a8a92;letter-spacing:.02em;border-top:1px solid #ffffff22;padding-top:8px;margin-top:6px}
-.replay{position:absolute;bottom:calc(18px + var(--safe-b));left:50%;margin-left:-70px;width:140px;font:inherit;font-size:14px;color:#ffffffcc;background:#ffffff10;border:1px solid #ffffff2a;border-radius:999px;padding:9px 18px;cursor:pointer;opacity:0;transition:opacity .6s}
+/* replay: quiet, appears late on the final screen */
+.replay{position:absolute;bottom:calc(22px + var(--safe-b));left:50%;margin-left:-70px;width:140px;font:inherit;font-size:13px;color:#ffffff80;background:transparent;border:1px solid #ffffff1f;border-radius:999px;padding:9px 18px;cursor:pointer;opacity:0;transition:opacity .6s}
 .replay.in{opacity:1}
 
 /* ---------- SKIP ---------- */
@@ -89,7 +69,7 @@ body:not(.phase-intro){background:#000}
 .nojs{position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;font-size:22px;line-height:1.6;z-index:99}
 
 /* ===================================================================
-   MIDDLE SCENE — the opened page itself loses integrity (0.6s → 6s).
+   MIDDLE SCENE — the opened page itself loses integrity (2.6s → 12.5s).
    Visual language: browser diagnostics (console, network waterfall,
    element inspector, paint flashing, layer borders). In-page only.
    =================================================================== */
@@ -201,3 +181,15 @@ body:not(.phase-intro){background:#000}
 .intro-title.hj{font-size:clamp(21px,6.3vw,34px);line-height:1.3;max-width:13em;margin-inline:auto}
 @media (max-height:700px){.netpane{height:18vh}.taken .intro-card{transform:translateY(-10vh)}}
 .calm .intro-title{transition:color .9s ease}
+
+/* debugger "paused" overlay + Sources view (act 3) */
+.dbg{position:fixed;z-index:24;left:50%;top:calc(var(--safe-t) + 14px);transform:translateX(-50%);display:none;align-items:center;gap:10px;direction:ltr;
+  background:#fef3c7;color:#3c3c3c;font:12px/1 var(--mono);padding:7px 8px 7px 12px;border-radius:4px;box-shadow:0 2px 10px #0009;white-space:nowrap}
+.dbg i{font-style:normal;color:#1a73e8;font-size:13px}
+.paused .dbg{display:flex}
+.src{display:none;flex:1;min-height:0;overflow:hidden;padding:4px 0;counter-reset:ln;white-space:pre;color:#d5d5d5}
+.src div{padding:1px 10px 1px 0;display:flex;gap:10px}
+.src div::before{counter-increment:ln;content:counter(ln);width:30px;text-align:right;color:#6b6f75;flex:none}
+.src .x{background:#1e3a5f;box-shadow:inset 3px 0 #4285f4}
+.src .k{color:#c792ea}.src .q{color:#f2a07b}.src .c{color:#6b6f75}
+.srcview .dt-log{display:none}.srcview .src{display:block}
