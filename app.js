@@ -52,7 +52,6 @@
   /* ---------- timeline helpers ---------- */
   var timers = [];
   function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
-  function clearAll() { timers.forEach(clearTimeout); timers = []; }
   function phase(name) {
     body.className = body.className.replace(/\bphase-\S+/g, "").trim() + " phase-" + name;
   }
@@ -200,7 +199,6 @@
     logOn = false; frozen = false;
     tearBox.innerHTML = ""; bf.classList.remove("on"); winsEl.innerHTML = "";
     ["stall", "shift", "shift2", "scrim", "scrim2", "blogging", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
-    $("#skip").hidden = true;
     sCut();
   }
 
@@ -227,7 +225,7 @@
     soundInit(); noiseTile();
 
     // 2.0–4.0 — the page stops behaving; alerts take the centre of the screen
-    at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
+    at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); });
     at(2080, function () { on("shift"); on("scrim"); });
     at(2150, function () { popAlert(ALERTS[0]); });
     at(2600, function () { popAlert(ALERTS[1]); vanish(badge); off("shift"); on("shift2"); });
@@ -251,7 +249,6 @@
     at(6750, relief);
   }
 
-  $("#skip").addEventListener("click", function () { clearAll(); relief(); });
   $("#replay").addEventListener("click", function () {
     var u = new URL(location.href); u.searchParams.set("r", Date.now().toString(36)); location.replace(u.toString());
   });
