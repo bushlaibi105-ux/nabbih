@@ -92,7 +92,7 @@ jobs:
               const fill = await p.evaluate(() => { const r = document.getElementById('stage').getBoundingClientRect(); return r.top <= 0 && r.left <= 0 && r.width >= innerWidth && r.height >= innerHeight; });
                             const fits = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
               const near = (v, want, tol) => Math.abs(v - want) <= tol;
-              const order = r0 >= 0 && near(t.attack, 2000, 250) && near(t.flash, 4000, 250) && near(t.freeze - t.flash, 250, 100) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 600, 120);
+              const order = r0 >= 0 && near(t.attack, 400, 150) && near(t.flash, 2400, 200) && near(t.freeze - t.flash, 250, 100) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 600, 120);
               const pass = buttonsAtStart === 0 && simButtons === 0 && maxWins >= 5 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
               console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} buttonsDuringSimulation=${simButtons} msFromStart=${JSON.stringify(t)} alertSamplesSeen=${maxWins} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
               ok = ok && pass; await ctx.close();
