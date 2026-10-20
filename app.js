@@ -157,27 +157,27 @@
   }
   var TEAR_A = [[21, 6, -11], [63, 3, 17]];
   var TEAR_B = [[7, 13, -24], [37, 2, 31], [69, 10, -15]];
-  var TEAR_C = [[0, 28, 19], [28, 2, -42], [54, 21, -13], [86, 9, 27]];
-
-  /* ---------- in-page error windows (layers inside this page, never real windows) ---------- */
+  
+  /* ---------- centred alert cards (iOS-inspired, drawn inside this page — not system alerts) ---------- */
   var winsEl = $("#wins");
-  var WINS = [
-    { t: "Connection interrupted", d: "The connection to this page was reset.", c: "ERR_CONNECTION_RESET", i: "" },
-    { t: "Unexpected redirect", d: "This page tried to send you somewhere else.", c: "302 → /r/7f3a2c", i: "amber" },
-    { t: "Untrusted script blocked", d: "A script from an unknown source was stopped.", c: "l.js · 185.62.x.x", i: "" },
-    { t: "Session error", d: "This page session is no longer valid.", c: "SESSION_INVALID (0x1c)", i: "grey" }
+  var ALERTS = [
+    { t: "Connection Interrupted", m: "The connection to this page was reset." },
+    { t: "Unexpected Redirect", m: "This page tried to open another address." },
+    { t: "Untrusted Script Blocked", m: "A script from an unknown source was stopped." },
+    { t: "Session Error", m: "This page session is no longer valid." },
+    { t: "Page Not Responding", m: "This page has stopped responding." }
   ];
-  function popWin(w, x, y, jolt) {
-    Array.prototype.forEach.call(winsEl.children, function (n) { n.classList.add("under"); });
+  function popAlert(a, jolt) {
+    // the previous card steps back and fades — limited overlap, one message at a time
+    Array.prototype.forEach.call(winsEl.querySelectorAll(".ios:not(.back)"), function (n) {
+      n.classList.add("back"); at(calm ? 0 : 220, function () { n.remove(); });
+    });
     var el = document.createElement("div");
-    el.className = "win" + (jolt && !calm ? " jolt" : "");
-    el.style.left = x; el.style.top = y;
-    el.innerHTML = '<div class="win-h"><i class="' + w.i + '"></i><b></b><u>×</u></div><div class="win-b"><span></span><code></code></div>';
-    el.querySelector("b").textContent = w.t;
-    el.querySelector("span").textContent = w.d;
-    el.querySelector("code").textContent = w.c;
+    el.className = "ios" + (jolt && !calm ? " jolt" : "");
+    el.innerHTML = '<div class="t"></div><div class="m"></div><div class="b">OK</div>';
+    el.children[0].textContent = a.t; el.children[1].textContent = a.m;
     winsEl.appendChild(el);
-    sTick(w.i === "amber" ? 1600 : 900);
+    sTick(1100);
   }
 
   /* ---------- black: terse event log ---------- */
@@ -211,7 +211,7 @@
   function endMiddle() {
     logOn = false; frozen = false;
     tearBox.innerHTML = ""; bf.classList.remove("on"); winsEl.innerHTML = "";
-    ["stall", "shift", "shift2", "blogging", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
+    ["stall", "shift", "shift2", "scrim", "scrim2", "blogging", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
     $("#skip").hidden = true;
     sCut();
   }
@@ -228,51 +228,39 @@
 
   /* ---------- master timeline (ms) ----------
      0.0–2.0  participation page, untouched
-     2.0–3.6  the page stalls and shifts; error windows pop up, then cascade; page dims
-     3.6–5.0  hard cut to black: terse event log races
-     5.0–5.5  FREEZE: the picture stops dead (visual only)
-     5.5–7.5  pure black — no text, no motion
-     7.5→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
+     2.0–4.0  the page stalls; centred alert cards appear one after another over a dimmed page
+     4.0–4.7  quick cut: black with a fast technical log
+     4.7–5.2  FREEZE: the picture stops dead (visual only)
+     5.2–7.2  pure black — no text, no motion
+     7.2→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
   function run() {
     var badge = $(".intro-badge"), sub = $(".intro-sub");
     on("run");
     soundInit();
 
-    // the page stops behaving
+    // 2.0–4.0 — the page stops behaving; alerts take the centre of the screen
     at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
-    at(2120, function () { on("shift"); });
-    at(2200, function () { popWin(WINS[0], "6%", "15%", true); });
-    at(2380, function () { popWin(WINS[1], "14%", "28%"); });
-    at(2520, function () { vanish(badge); off("shift"); on("shift2"); });
-    at(2560, function () { popWin(WINS[2], "4%", "42%", true); tear(TEAR_A, 70); });
-    at(2720, function () { popWin(WINS[3], "15%", "55%"); });
-    at(2780, function () { on("dim1"); theme("#d9dbdf"); });
+    at(2080, function () { on("shift"); on("scrim"); });
+    at(2150, function () { popAlert(ALERTS[0]); });
+    at(2600, function () { popAlert(ALERTS[1]); vanish(badge); off("shift"); on("shift2"); });
+    at(2750, function () { on("dim1"); theme("#d9dbdf"); });
+    at(3020, function () { popAlert(ALERTS[2], true); tear(TEAR_A, 70); });
+    at(3200, function () { on("dim2"); theme("#7d8087"); on("scrim2"); });
+    at(3420, function () { popAlert(ALERTS[3]); });
+    at(3560, function () { freeze(100); });
+    at(3700, function () { popAlert(ALERTS[4], true); on("dim3"); theme("#17181b"); sHum(); });
+    at(3840, function () { glitchTitle("g2", 100); tear(TEAR_B, 60); });
+    at(3940, function () { blackFrame(40); });
 
-    // cascade: the same errors, faster, in a trail
-    for (var k = 0; k < 8; k++) (function (k) {
-      at(2860 + k * 75, function () {
-        popWin(WINS[(k + 3) % 4], "calc(3% + " + (k * 14) + "px)", "calc(10% + " + (k * 24) + "px)", k % 3 === 0);
-      });
-    })(k);
-    at(3000, function () { on("dim2"); theme("#7d8087"); });
-    at(3200, function () { on("dim3"); theme("#17181b"); sHum(); });
-    at(3260, function () { glitchTitle("g2", 120); });
-    at(3450, function () { freeze(110); });
-    at(3560, function () { tear(TEAR_B, 60); });
-    at(3620, function () { blackFrame(40); });
+    // 4.0–4.7 — a quick, sudden flash of technical log on black
+    at(4000, function () { on("dim4"); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); runLog(calm ? 90 : 45); });
 
-    // black: the event log
-    at(3660, function () { on("dim4"); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); runLog(calm ? 140 : 78); });
-    at(4300, function () { freeze(80); });
-    at(4560, function () { tear(TEAR_C, 50); });
-    at(4700, function () { blackFrame(30); });
-
-    // 5.0–5.5 — the freeze
-    at(5000, function () { hang(500); });
-    // 5.5–7.5 — black, still, silent
-    at(5500, function () { endMiddle(); phase("void"); theme("#000000"); });
-    // 7.5 — reassurance
-    at(7500, relief);
+    // 4.7–5.2 — the freeze
+    at(4700, function () { hang(500); });
+    // 5.2–7.2 — black, still, silent
+    at(5200, function () { endMiddle(); phase("void"); theme("#000000"); });
+    // 7.2 — reassurance
+    at(7200, relief);
   }
 
   $("#skip").addEventListener("click", function () { clearAll(); relief(); });
