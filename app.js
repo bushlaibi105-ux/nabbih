@@ -112,18 +112,8 @@
   }
 
   /* ---------- page-level effects ---------- */
-  var intro = $("#intro"), title = $(".intro-title"), fx = $("#fx");
-  function rectIn(el) {
-    var r = el.getBoundingClientRect(), p = intro.getBoundingClientRect();
-    return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height };
-  }
-  function paintFlash(el) {
-    var r = rectIn(el), d = document.createElement("div");
-    d.className = "pf";
-    d.style.cssText = "left:" + r.x + "px;top:" + r.y + "px;width:" + r.w + "px;height:" + r.h + "px";
-    fx.appendChild(d); at(400, function () { d.remove(); });
-  }
-  function vanish(el) { paintFlash(el); el.classList.add("gone"); sTick(1300); }
+  var intro = $("#intro"), title = $(".intro-title");
+  function vanish(el) { el.classList.add("gone"); sTick(1300); }
   function glitchTitle(cls, ms) {
     if (calm) return;
     title.setAttribute("data-text", title.textContent);
@@ -131,17 +121,10 @@
     sBurst(ms / 1000, 2600, 0.12);
     at(ms, function () { title.classList.remove("g", "g2"); });
   }
-  function rewriteTitle(text) {
-    paintFlash(title);
-    title.classList.add("hj");
-    title.textContent = text; title.setAttribute("data-text", text);
-    title.classList.remove("swap"); void title.offsetWidth; title.classList.add("swap");
-    sBurst(0.18, 900, 0.3);
-  }
   var bf = $("#bf");
-  function blackFrame(ms, white) {
+  function blackFrame(ms) {
     if (calm) return;
-    bf.classList.toggle("white", !!white); bf.classList.add("on");
+    bf.classList.add("on");
     at(ms, function () { bf.classList.remove("on"); });
   }
   var frozen = false;
@@ -150,9 +133,9 @@
     frozen = true; on("frozen"); sCut(); // sound drops out with the picture
     at(ms, function () { frozen = false; off("frozen"); if (snd.ctx) snd.out.gain.value = 0.55; });
   }
+  // the signature freeze: the picture just stops (visual only — the browser stays responsive)
   function hang(ms) {
     frozen = true; on("frozen"); on("hang"); sCut();
-    if (insp) insp.remove();
     at(ms, function () { frozen = false; off("frozen"); off("hang"); });
   }
   // precise tearing: a few designed horizontal bands of the live page, displaced
@@ -166,7 +149,6 @@
       s.style.clipPath = "inset(" + b[0] + "% 0 " + Math.max(0, 100 - b[0] - b[1]) + "% 0)";
       s.style.webkitClipPath = s.style.clipPath;
       s.style.transform = "translateX(" + b[2] + "px)";
-      if (b[3]) s.style.filter = "invert(1)";
       s.appendChild(intro.cloneNode(true));
       tearBox.appendChild(s);
     });
@@ -176,93 +158,60 @@
   var TEAR_A = [[21, 6, -11], [63, 3, 17]];
   var TEAR_B = [[7, 13, -24], [37, 2, 31], [69, 10, -15]];
   var TEAR_C = [[0, 28, 19], [28, 2, -42], [54, 21, -13], [86, 9, 27]];
-  var TEAR_D = [[12, 2, 60], [44, 18, -8], [80, 1.5, -50]];
 
-  /* ---------- console: suspicious activity inside this web page ---------- */
-  var logEl = $("#log"), here = location.origin + location.pathname;
-  var FAST = [ // short lines, readable at speed
-    ["i", "Navigated to " + here, ""],
-    ["w", "Unexpected redirect → /r/7f3a2c", "VM412:3"],
-    ["i", "<script src=\"//185.62.x.x/l.js\"> injected", "VM412:7"],
-    ["w", "document.cookie read", "l.js:1"],
-    ["e", "Blocked a cross-origin frame", "l.js:1"],
-    ["w", "clipboard.readText() requested", "l.js:2"],
-    ["i", "Service worker registered", "sw-x.js:14"],
-    ["w", "input[type=password] probed", "l.js:3"],
-    ["i", "WebSocket open  wss://185.62.x.x", "l.js:5"],
-    ["e", "Failed to fetch", "l.js:3"],
-    ["w", "history.pushState() overridden", "l.js:6"],
-    ["i", "h1 textContent rewritten", "l.js:6"],
-    ["i", "POST /c  keepalive beacon", "l.js:7"],
-    ["w", "Second session attached to this page", "l.js:10"],
-    ["e", "Maximum call stack size exceeded", "l.js:9"],
-    ["w", "Page controlled by a script it did not load", "l.js:9"]
+  /* ---------- in-page error windows (layers inside this page, never real windows) ---------- */
+  var winsEl = $("#wins");
+  var WINS = [
+    { t: "Connection interrupted", d: "The connection to this page was reset.", c: "ERR_CONNECTION_RESET", i: "" },
+    { t: "Unexpected redirect", d: "This page tried to send you somewhere else.", c: "302 → /r/7f3a2c", i: "amber" },
+    { t: "Untrusted script blocked", d: "A script from an unknown source was stopped.", c: "l.js · 185.62.x.x", i: "" },
+    { t: "Session error", d: "This page session is no longer valid.", c: "SESSION_INVALID (0x1c)", i: "grey" }
   ];
-  function addRow(r) {
-    var d = document.createElement("div");
-    d.className = "row fresh " + r[0];
-    var m = document.createElement("span"); m.className = "m"; m.textContent = r[1];
-    d.appendChild(m);
-    if (r[2]) { var s = document.createElement("span"); s.className = "s"; s.textContent = r[2]; d.appendChild(s); }
-    logEl.appendChild(d);
-    while (logEl.childNodes.length > 60) logEl.removeChild(logEl.firstChild);
-    sTick(r[0] === "e" ? 900 : 2400);
+  function popWin(w, x, y, jolt) {
+    Array.prototype.forEach.call(winsEl.children, function (n) { n.classList.add("under"); });
+    var el = document.createElement("div");
+    el.className = "win" + (jolt && !calm ? " jolt" : "");
+    el.style.left = x; el.style.top = y;
+    el.innerHTML = '<div class="win-h"><i class="' + w.i + '"></i><b></b><u>×</u></div><div class="win-b"><span></span><code></code></div>';
+    el.querySelector("b").textContent = w.t;
+    el.querySelector("span").textContent = w.d;
+    el.querySelector("code").textContent = w.c;
+    winsEl.appendChild(el);
+    sTick(w.i === "amber" ? 1600 : 900);
   }
-  var logOn = false;
-  function streamLog(list, startGap, endGap, untilMs) {
-    // gaps shrink from startGap to endGap: the activity visibly accelerates
-    logOn = true;
-    var i = 0, t0 = performance.now();
+
+  /* ---------- black: terse event log ---------- */
+  var blog = $("#blog"), logOn = false;
+  var EVENTS = [
+    ["connect", "reset"], ["redirect", "/r/7f3a2c"], ["script", "l.js blocked", 1], ["session", "invalid", 1],
+    ["origin", "mismatch"], ["frame", "detached"], ["retry", "1/3"], ["retry", "2/3"], ["socket", "185.62.x.x"],
+    ["dom", "rewritten"], ["session", "reset", 1], ["redirect", "/r/9c01"], ["storage", "cleared"],
+    ["frame", "reloaded"], ["policy", "violation", 1], ["retry", "3/3"], ["page", "not responding", 1]
+  ];
+  function pad(n, l) { n = String(n); while (n.length < (l || 2)) n = "0" + n; return n; }
+  function stamp() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + pad(d.getMilliseconds(), 3); }
+  function runLog(gap) {
+    logOn = true; var i = 0;
     (function next() {
       if (!logOn) return;
-      var k = Math.min(1, (performance.now() - t0) / untilMs);
-      if (!frozen) addRow(list[i++ % list.length]);
-      var gap = calm ? Math.max(startGap, 220) : startGap + (endGap - startGap) * k * k;
+      if (!frozen && i < EVENTS.length) {
+        var e = EVENTS[i++], p = document.createElement("p");
+        if (e[2]) p.className = "e";
+        p.innerHTML = "<span></span><b></b><i></i>";
+        p.children[0].textContent = stamp(); p.children[1].textContent = e[0]; p.children[2].textContent = e[1];
+        p.children[2].style.fontStyle = "normal";
+        blog.appendChild(p);
+        while (blog.children.length > 9) blog.removeChild(blog.firstChild);
+        sTick(e[2] ? 800 : 2400);
+      }
       timers.push(setTimeout(next, gap));
     })();
   }
 
-  /* ---------- network panel: waterfall of requests the page never asked for ---------- */
-  var netEl = $("#netRows"), netT0 = 0;
-  var NET = [["l.js", "200"], ["r/7f3a2c", "302"], ["c?id=e1f0", "(pending)"], ["sw-x.js", "200"], ["s", "101"],
-             ["pixel.gif", "200"], ["c?id=93ab", "(blocked)"], ["m.wasm", "(pending)"], ["c?id=4d1e", "(failed)"]];
-  var netOn = false;
-  function streamNet() {
-    netOn = true; netT0 = performance.now();
-    var i = 0;
-    (function next() {
-      if (!netOn) return;
-      if (!frozen) {
-        var n = NET[i++ % NET.length], row = document.createElement("div");
-        var off0 = Math.min(78, (performance.now() - netT0) / 22);
-        row.className = "nr" + (/blocked|failed/.test(n[1]) ? " bad" : "");
-        row.innerHTML = "<span></span><span class=st></span><i><b></b><b></b><b></b></i>";
-        row.children[0].textContent = n[0]; row.children[1].textContent = n[1];
-        var bs = row.querySelectorAll("b"), w1 = 2 + Math.random() * 4, w2 = 3 + Math.random() * 9, w3 = 2 + Math.random() * 12;
-        bs[0].style.cssText = "left:" + off0 + "%;width:" + w1 + "%";
-        bs[1].style.cssText = "left:" + (off0 + w1) + "%;width:" + w2 + "%";
-        bs[2].style.cssText = "left:" + (off0 + w1 + w2) + "%;width:" + (/pending/.test(n[1]) ? 100 : w3) + "%";
-        netEl.appendChild(row);
-        while (netEl.childNodes.length > 20) netEl.removeChild(netEl.firstChild);
-      }
-      timers.push(setTimeout(next, calm ? 260 : 120));
-    })();
-  }
-
-  /* ---------- inspector highlight on the page title ---------- */
-  var insp;
-  function inspect(el) {
-    var r = rectIn(el);
-    insp = document.createElement("div"); insp.className = "insp";
-    insp.style.cssText = "left:" + r.x + "px;top:" + r.y + "px;width:" + r.w + "px;height:" + r.h + "px";
-    insp.innerHTML = "<div class=tip><b>h1</b>.intro-title<i>" + Math.round(r.w) + " × " + Math.round(r.h) + "</i></div>";
-    fx.appendChild(insp); sTick(3200);
-  }
-
   function endMiddle() {
-    logOn = false; netOn = false; frozen = false;
-    tearBox.innerHTML = ""; bf.classList.remove("on");
-    ["stall", "dt-on", "taken", "net-on", "lb", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
+    logOn = false; frozen = false;
+    tearBox.innerHTML = ""; bf.classList.remove("on"); winsEl.innerHTML = "";
+    ["stall", "shift", "shift2", "blogging", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
     $("#skip").hidden = true;
     sCut();
   }
@@ -279,45 +228,49 @@
 
   /* ---------- master timeline (ms) ----------
      0.0–2.0  participation page, untouched
-     2.0–5.0  attack: the page breaks, goes black, devtools stream suspicious activity
+     2.0–3.6  the page stalls and shifts; error windows pop up, then cascade; page dims
+     3.6–5.0  hard cut to black: terse event log races
      5.0–5.5  FREEZE: the picture stops dead (visual only)
      5.5–7.5  pure black — no text, no motion
      7.5→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
   function run() {
-    var badge = $(".intro-badge"), sub = $(".intro-sub"), loader = $(".intro-loader");
-    var line1 = cfg.hijackLine1 || "هذه الصفحة لم تعد كما فتحتها",
-        line2 = cfg.hijackLine2 || "من يتحكم بها الآن؟";
+    var badge = $(".intro-badge"), sub = $(".intro-sub");
     on("run");
     soundInit();
 
-    // 2.0–5.0 — attack
-    at(2000, function () { on("stall"); blackFrame(40); vanish(sub); glitchTitle(null, 90); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
-    at(2100, function () { on("dt-on"); streamLog(FAST, 210, 120, 2700); });
-    at(2250, function () { vanish(loader); });
-    at(2350, function () { on("dim1"); theme("#d9dbdf"); });
-    at(2450, function () { vanish(badge); on("dim2"); theme("#7d8087"); });
-    at(2520, function () { off("dim2"); });
-    at(2570, function () { on("dim2"); sBurst(0.08, 400, 0.2); });
-    at(2700, function () { on("dim3"); theme("#17181b"); tear(TEAR_A, 80); sHum(); });
-    at(2850, function () { on("dim4"); on("taken"); theme("#000000"); });
-    at(3050, function () { inspect(title); });
-    at(3330, function () { if (insp) insp.remove(); rewriteTitle(line1); });
-    at(3550, function () { freeze(120); });
-    at(3670, function () { blackFrame(30); });
-    at(3750, function () { on("net-on"); streamNet(); });
-    at(3950, function () { tear(TEAR_B, 90); });
-    at(4150, function () { rewriteTitle(line2); });
-    at(4350, function () { on("lb"); });
-    at(4450, function () { freeze(90); });
-    at(4650, function () { glitchTitle("g2", 120); tear(TEAR_C, 60); });
-    at(4850, function () { tear(TEAR_D, 50); });
+    // the page stops behaving
+    at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
+    at(2120, function () { on("shift"); });
+    at(2200, function () { popWin(WINS[0], "6%", "15%", true); });
+    at(2380, function () { popWin(WINS[1], "14%", "28%"); });
+    at(2520, function () { vanish(badge); off("shift"); on("shift2"); });
+    at(2560, function () { popWin(WINS[2], "4%", "42%", true); tear(TEAR_A, 70); });
+    at(2720, function () { popWin(WINS[3], "15%", "55%"); });
+    at(2780, function () { on("dim1"); theme("#d9dbdf"); });
+
+    // cascade: the same errors, faster, in a trail
+    for (var k = 0; k < 8; k++) (function (k) {
+      at(2860 + k * 75, function () {
+        popWin(WINS[(k + 3) % 4], "calc(3% + " + (k * 14) + "px)", "calc(10% + " + (k * 24) + "px)", k % 3 === 0);
+      });
+    })(k);
+    at(3000, function () { on("dim2"); theme("#7d8087"); });
+    at(3200, function () { on("dim3"); theme("#17181b"); sHum(); });
+    at(3260, function () { glitchTitle("g2", 120); });
+    at(3450, function () { freeze(110); });
+    at(3560, function () { tear(TEAR_B, 60); });
+    at(3620, function () { blackFrame(40); });
+
+    // black: the event log
+    at(3660, function () { on("dim4"); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); runLog(calm ? 140 : 78); });
+    at(4300, function () { freeze(80); });
+    at(4560, function () { tear(TEAR_C, 50); });
+    at(4700, function () { blackFrame(30); });
 
     // 5.0–5.5 — the freeze
     at(5000, function () { hang(500); });
-
     // 5.5–7.5 — black, still, silent
     at(5500, function () { endMiddle(); phase("void"); theme("#000000"); });
-
     // 7.5 — reassurance
     at(7500, relief);
   }

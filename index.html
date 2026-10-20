@@ -18,7 +18,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="preload" href="assets/fonts/saudi-bold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body class="phase-intro">
   <main id="stage" aria-live="polite">
@@ -32,21 +32,9 @@
         <div class="intro-loader"><span></span></div>
       </div>
 
-      <!-- 0.6–6s : the page loses integrity (pure in-page visuals) -->
-      <div class="layers" aria-hidden="true"></div>
-      <div id="fx" aria-hidden="true"></div>
-
-      <div class="netpane" id="net" aria-hidden="true">
-        <div class="np-head"><span class="rec"></span><span class="on">Network</span><span>Preserve log</span><span>Disable cache</span></div>
-        <div class="np-cols"><span>Name</span><span>Status</span><span>Waterfall</span></div>
-        <div class="np-rows" id="netRows"></div>
-      </div>
-
-      <div class="devtools" id="dt" aria-hidden="true">
-        <div class="dt-head"><span>Elements</span><span class="on">Console</span><span>Sources</span><span>Network</span><span>Application</span></div>
-        <div class="dt-bar"><span>top ▾</span><em>Filter</em><span>All levels ▾</span></div>
-        <div class="dt-log" id="log"></div>
-      </div>
+      <!-- 2.0–5.0s : Browser Takeover Simulation (pure in-page layers) -->
+      <div id="wins" aria-hidden="true"></div>
+      <div class="blog" id="blog" aria-hidden="true"></div>
     </section>
 
     <!-- final screen: stays until the visitor leaves or replays -->
@@ -70,6 +58,6 @@
   <button id="skip" class="skip" type="button" hidden>تخطي المشهد ‹</button>
   <noscript><div class="nojs">لا تخاف، جهازك آمن — هذه مجرد محاكاة توعوية.</div></noscript>
 
-  <script src="app.js?v=4" defer></script>
+  <script src="app.js?v=5" defer></script>
 </body>
 </html>
