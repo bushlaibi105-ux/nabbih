@@ -74,25 +74,26 @@ jobs:
                   rec(); new MutationObserver(rec).observe(document.body, { attributes: true, attributeFilter: ['class'] });
                 });
               });
-              const p = await ctx.newPage(); const errs = [];
+              const p = await ctx.newPage(); const errs = []; let maxWins = 0;
               p.on('pageerror', e => errs.push(e.message));
               await p.goto(process.env.BASE);
               const buttonsAtStart = await p.locator('button:visible').count();
-              await p.waitForTimeout(20000);
+              for (let i = 0; i < 40; i++) { maxWins = Math.max(maxWins, await p.locator('.win').count()); await p.waitForTimeout(100); }
+              await p.waitForTimeout(16000);
               const log = await p.evaluate(() => window.__log);
               const first = re => { const e = log.find(([, c]) => re.test(c)); return e ? e[0] : -1; };
               const r0 = first(/\brun\b/);
               const at = re => { const v = first(re); return v < 0 ? -1 : v - r0; };
-              const t = { attack: at(/stall/), freeze: at(/\bhang\b/), black: at(/phase-void/), safe: at(/phase-safe/) };
+              const t = { attack: at(/stall/), log: at(/blogging/), freeze: at(/\bhang\b/), black: at(/phase-void/), safe: at(/phase-safe/) };
               const endsOnSafe = /phase-safe/.test(log[log.length - 1][1]) && first(/phase-final/) === -1;
               const noFinal = (await p.locator('#final').count()) === 0;
               const reassure = (await p.locator('.safe-2').isVisible()) && (await p.locator('.safe-club').isVisible());
               const fill = await p.evaluate(() => { const r = document.getElementById('stage').getBoundingClientRect(); return r.top <= 0 && r.left <= 0 && r.width >= innerWidth && r.height >= innerHeight; });
                             const fits = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
               const near = (v, want, tol) => Math.abs(v - want) <= tol;
-              const order = r0 >= 0 && near(t.attack, 2000, 250) && near(t.freeze, 5000, 250) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 2000, 250);
-              const pass = buttonsAtStart === 0 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
-              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} msFromStart=${JSON.stringify(t)} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
+              const order = r0 >= 0 && near(t.attack, 2000, 250) && near(t.log, 3660, 250) && near(t.freeze, 5000, 250) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 2000, 250);
+              const pass = buttonsAtStart === 0 && maxWins >= 8 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
+              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} msFromStart=${JSON.stringify(t)} errorWindowsSeen=${maxWins} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
               ok = ok && pass; await ctx.close();
             }
             await b.close(); process.exit(ok ? 0 : 1);
