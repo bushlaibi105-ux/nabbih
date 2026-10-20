@@ -78,8 +78,9 @@ jobs:
               p.on('pageerror', e => errs.push(e.message));
               await p.goto(process.env.BASE);
               const buttonsAtStart = await p.locator('button:visible').count();
-              for (let i = 0; i < 40; i++) { maxWins += await p.locator('#stage .ios:not(.back)').count(); await p.waitForTimeout(100); }
-              await p.waitForTimeout(16000);
+              let simButtons = 0;
+              for (let i = 0; i < 70; i++) { maxWins += await p.locator('#stage .ios:not(.back)').count(); simButtons += await p.locator('button:visible').count(); await p.waitForTimeout(100); }
+              await p.waitForTimeout(13000);
               const log = await p.evaluate(() => window.__log);
               const first = re => { const e = log.find(([, c]) => re.test(c)); return e ? e[0] : -1; };
               const r0 = first(/\brun\b/);
@@ -92,8 +93,8 @@ jobs:
                             const fits = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
               const near = (v, want, tol) => Math.abs(v - want) <= tol;
               const order = r0 >= 0 && near(t.attack, 2000, 250) && near(t.flash, 4000, 250) && near(t.freeze - t.flash, 250, 100) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 2000, 250);
-              const pass = buttonsAtStart === 0 && maxWins >= 5 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
-              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} msFromStart=${JSON.stringify(t)} alertSamplesSeen=${maxWins} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
+              const pass = buttonsAtStart === 0 && simButtons === 0 && maxWins >= 5 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
+              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} buttonsDuringSimulation=${simButtons} msFromStart=${JSON.stringify(t)} alertSamplesSeen=${maxWins} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
               ok = ok && pass; await ctx.close();
             }
             await b.close(); process.exit(ok ? 0 : 1);
