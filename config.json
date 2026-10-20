@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "logo": "assets/logo.png",
   "showWordmarkWithLogo": false,
   "brandName": "نبّه",
@@ -8,6 +8,8 @@
   "pageTitle": "شارك معنا | مبادرة نبّه",
   "introTitle": "شارك معنا في مبادرة نبّه",
   "introSubtitle": "لحظات وتبدأ المشاركة…",
+  "hijackLine1": "هذه الصفحة لم تعد كما فتحتها",
+  "hijackLine2": "من يتحكم بها الآن؟",
   "safeLine1": "لا تخاف، جهازك آمن.",
   "safeLine2": "هذه مجرد محاكاة توعوية",
   "safeLine3": "تخيل لو كان الرابط <mark>خبيثًا</mark> فعلًا؟",

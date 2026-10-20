@@ -13,7 +13,7 @@
   <meta property="og:description" content="مشاركة بسيطة — نادي الذكاء الاصطناعي">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/saudi-bold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body class="phase-intro">
   <main id="stage" aria-live="polite">
@@ -26,57 +26,22 @@
         <p class="intro-sub" data-cfg="introSubtitle">لحظات وتبدأ المشاركة…</p>
         <div class="intro-loader"><span></span></div>
       </div>
-    </section>
 
-    <!-- 1–6s : simulated attack -->
-    <section id="attack" class="scene" aria-hidden="true">
-      <canvas id="noise"></canvas>
-      <div class="grid-bg"></div>
-      <div class="scanlines"></div>
-      <div class="tears"></div>
+      <!-- 0.6–6s : the page loses integrity (pure in-page visuals) -->
+      <div class="layers" aria-hidden="true"></div>
+      <div id="fx" aria-hidden="true"></div>
 
-      <div class="alert-wrap">
-        <div class="alert-icon">
-          <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 5 61 57H3Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 24v16" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="48" r="3.2" fill="currentColor"/></svg>
-        </div>
-        <div id="alertText" class="glitch" data-text="SECURITY WARNING">SECURITY WARNING</div>
-        <div id="alertSub" class="alert-sub">تم رصد نشاط غير معتاد</div>
+      <div class="netpane" id="net" aria-hidden="true">
+        <div class="np-head"><span class="rec"></span><span class="on">Network</span><span>Preserve log</span><span>Disable cache</span></div>
+        <div class="np-cols"><span>Name</span><span>Status</span><span>Waterfall</span></div>
+        <div class="np-rows" id="netRows"></div>
       </div>
 
-      <div class="hud">
-        <div class="hud-top">
-          <span class="dot"></span><span class="mono">THREAT&nbsp;LEVEL:&nbsp;<b>CRITICAL</b></span>
-          <span class="mono hud-clock" id="hudClock">00:00:00</span>
-        </div>
-
-        <div class="radar">
-          <svg viewBox="0 0 200 200" aria-hidden="true">
-            <circle cx="100" cy="100" r="96" class="r1"/>
-            <circle cx="100" cy="100" r="70" class="r2"/>
-            <circle cx="100" cy="100" r="44" class="r3"/>
-            <path d="M100 0v200M0 100h200" class="cross"/>
-            <circle cx="100" cy="100" r="86" class="dash"/>
-          </svg>
-          <div class="sweep"></div>
-          <div class="blip b1"></div><div class="blip b2"></div><div class="blip b3"></div>
-          <div class="radar-pct"><span id="pct">0</span><small>%</small></div>
-          <div class="radar-label mono">DEEP SCAN</div>
-        </div>
-
-        <ul class="modules mono" id="modules">
-          <li data-at="0"><span>CONTACTS</span><i><em></em></i><b>…</b></li>
-          <li data-at="1"><span>PHOTOS</span><i><em></em></i><b>…</b></li>
-          <li data-at="2"><span>MESSAGES</span><i><em></em></i><b>…</b></li>
-          <li data-at="3"><span>SAVED&nbsp;LOGINS</span><i><em></em></i><b>…</b></li>
-          <li data-at="4"><span>LOCATION</span><i><em></em></i><b>…</b></li>
-        </ul>
-
-        <pre class="term mono" id="term" dir="ltr"></pre>
+      <div class="devtools" id="dt" aria-hidden="true">
+        <div class="dt-head"><span>Elements</span><span class="on">Console</span><span>Sources</span><span>Network</span><span>Application</span></div>
+        <div class="dt-bar"><span>top ▾</span><em>Filter</em><span>All levels ▾</span></div>
+        <div class="dt-log" id="log"></div>
       </div>
-
-      <div class="hexcol mono" id="hexcol" dir="ltr" aria-hidden="true"></div>
-      <div class="vignette"></div>
-      <div class="flash"></div>
     </section>
 
     <!-- 6–9s : relief -->
@@ -115,9 +80,11 @@
 
   </main>
 
-  <button id="skip" class="skip" type="button" hidden>تخطي المؤثرات ‹</button>
+  <div id="tear" aria-hidden="true"></div>
+  <div id="bf" aria-hidden="true"></div>
+  <button id="skip" class="skip" type="button" hidden>تخطي المشهد ‹</button>
   <noscript><div class="nojs">لا تخاف، جهازك آمن — هذه مجرد محاكاة توعوية من معرض «نبّه». مو كل QR Code آمن، تأكد قبل ما تمسح. خلك نبّه.</div></noscript>
 
-  <script src="app.js?v=1" defer></script>
+  <script src="app.js?v=2" defer></script>
 </body>
 </html>
