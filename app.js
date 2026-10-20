@@ -213,40 +213,45 @@
   }
 
   /* ---------- master timeline (ms) ----------
-     0.0–2.0  participation page, untouched
-     2.0–4.0  the page stalls; centred alert cards appear one after another over a dimmed page
-     4.0–4.25 dark digital flash: grain, a torn line, one faint technical glimpse
-     4.25–4.75 FREEZE: the picture stops dead (visual only)
-     4.75–5.35 pure black — no text, no motion
-     5.35→    "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
+     Scene times below are written on the original 2 s-opening clock; INTRO sets
+     how long the participation page actually shows (0.4 s), and every later
+     scene keeps its duration:
+     0.0–0.4   participation page, untouched
+     0.4–2.4   the page stalls; centred alert cards appear one after another over a dimmed page
+     2.4–2.65  dark digital flash: grain, a torn line, one faint technical glimpse
+     2.65–3.15 FREEZE: the picture stops dead (visual only)
+     3.15–3.75 pure black — no text, no motion
+     3.75→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
+  var INTRO = 400;
   function run() {
     var badge = $(".intro-badge"), sub = $(".intro-sub");
     on("run");
     soundInit(); noiseTile();
+    function t(ms, fn) { at(ms - 2000 + INTRO, fn); }
 
     // 2.0–4.0 — the page stops behaving; alerts take the centre of the screen
-    at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); });
-    at(2080, function () { on("shift"); on("scrim"); });
-    at(2150, function () { popAlert(ALERTS[0]); });
-    at(2600, function () { popAlert(ALERTS[1]); vanish(badge); off("shift"); on("shift2"); });
-    at(2750, function () { on("dim1"); theme("#d9dbdf"); });
-    at(3020, function () { popAlert(ALERTS[2], true); tear(TEAR_A, 70); });
-    at(3200, function () { on("dim2"); theme("#7d8087"); on("scrim2"); });
-    at(3420, function () { popAlert(ALERTS[3]); });
-    at(3560, function () { freeze(100); });
-    at(3700, function () { popAlert(ALERTS[4], true); on("dim3"); theme("#17181b"); sHum(); });
-    at(3840, function () { glitchTitle("g2", 100); tear(TEAR_B, 60); });
-    at(3940, function () { blackFrame(40); });
+    t(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); });
+    t(2080, function () { on("shift"); on("scrim"); });
+    t(2150, function () { popAlert(ALERTS[0]); });
+    t(2600, function () { popAlert(ALERTS[1]); vanish(badge); off("shift"); on("shift2"); });
+    t(2750, function () { on("dim1"); theme("#d9dbdf"); });
+    t(3020, function () { popAlert(ALERTS[2], true); tear(TEAR_A, 70); });
+    t(3200, function () { on("dim2"); theme("#7d8087"); on("scrim2"); });
+    t(3420, function () { popAlert(ALERTS[3]); });
+    t(3560, function () { freeze(100); });
+    t(3700, function () { popAlert(ALERTS[4], true); on("dim3"); theme("#17181b"); sHum(); });
+    t(3840, function () { glitchTitle("g2", 100); tear(TEAR_B, 60); });
+    t(3940, function () { blackFrame(40); });
 
     // 4.0–4.25 — a quarter-second dark digital flash
-    at(4000, function () { on("dim4"); digitalFlash(); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); });
+    t(4000, function () { on("dim4"); digitalFlash(); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); });
 
     // 4.25–4.75 — the freeze (holds the flash's last frame)
-    at(4250, function () { hang(500); });
+    t(4250, function () { hang(500); });
     // 4.75–5.35 — black, still, silent
-    at(4750, function () { endMiddle(); phase("void"); theme("#000000"); });
+    t(4750, function () { endMiddle(); phase("void"); theme("#000000"); });
     // 5.35 — reassurance
-    at(5350, relief);
+    t(5350, relief);
   }
 
   $("#replay").addEventListener("click", function () {
