@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "logo": "assets/logo.png",
+  "showWordmarkWithLogo": false,
+  "brandName": "نبّه",
+  "brandTagline": "معرض التوعية بالأمن السيبراني",
+  "clubName": "نادي الذكاء الاصطناعي",
+  "pageTitle": "شارك معنا | مبادرة نبّه",
+  "introTitle": "شارك معنا في مبادرة نبّه",
+  "introSubtitle": "لحظات وتبدأ المشاركة…",
+  "safeLine1": "لا تخاف، جهازك آمن.",
+  "safeLine2": "هذه مجرد محاكاة توعوية",
+  "safeLine3": "تخيل لو كان الرابط <mark>خبيثًا</mark> فعلًا؟",
+  "finalLine1": "مو كل QR Code آمن",
+  "finalLine2": "تأكد قبل ما تمسح",
+  "finalLine3": "خلك نبّه"
+}
