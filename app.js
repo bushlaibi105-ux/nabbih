@@ -55,156 +55,225 @@
   function phase(name) {
     body.className = body.className.replace(/\bphase-\S+/g, "").trim() + " phase-" + name;
   }
-  function flash() {
+  function on(c) { body.classList.add(c); }
+  function off(c) { body.classList.remove(c); }
+  function pulse(fn, undo, ms) { fn(); at(ms, undo); }
+
+  /* ---------- optional sound (only if the browser already allows audio) ---------- */
+  var snd = { ctx: null, out: null, noise: null, hum: [] };
+  function soundInit() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      snd.ctx = new AC();
+      snd.out = snd.ctx.createGain(); snd.out.gain.value = 0.55; snd.out.connect(snd.ctx.destination);
+      var len = snd.ctx.sampleRate, buf = snd.ctx.createBuffer(1, len, snd.ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      snd.noise = buf;
+      if (snd.ctx.resume) snd.ctx.resume().catch(function () {});
+      // a tap anywhere during the scene unlocks audio on browsers that require a gesture
+      ["pointerdown", "touchstart", "keydown"].forEach(function (ev) {
+        addEventListener(ev, function () { if (snd.ctx.state !== "running") snd.ctx.resume().catch(function () {}); }, { once: true, passive: true });
+      });
+    } catch (e) { snd.ctx = null; }
+  }
+  function live() { return snd.ctx && snd.ctx.state === "running"; }
+  function sTick(f) {
+    if (!live()) return;
+    var t = snd.ctx.currentTime, o = snd.ctx.createOscillator(), g = snd.ctx.createGain();
+    o.type = "square"; o.frequency.value = f || 2400;
+    g.gain.setValueAtTime(0.035, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
+    o.connect(g); g.connect(snd.out); o.start(t); o.stop(t + 0.02);
+  }
+  function sBurst(dur, freq, vol) {
+    if (!live()) return;
+    var t = snd.ctx.currentTime, s = snd.ctx.createBufferSource(), f = snd.ctx.createBiquadFilter(), g = snd.ctx.createGain();
+    s.buffer = snd.noise; f.type = "bandpass"; f.frequency.value = freq || 1800; f.Q.value = 0.9;
+    g.gain.setValueAtTime(vol || 0.22, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(snd.out); s.start(t, Math.random()); s.stop(t + dur + 0.02);
+  }
+  function sHum() {
+    if (!live()) return;
+    var t = snd.ctx.currentTime, g = snd.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 3.2); g.connect(snd.out);
+    [46, 92.5].forEach(function (fq) {
+      var o = snd.ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = fq;
+      o.frequency.linearRampToValueAtTime(fq * 1.12, t + 3.2);
+      var lp = snd.ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 220;
+      o.connect(lp); lp.connect(g); o.start(t); snd.hum.push(o);
+    });
+    snd.hum.push(g);
+  }
+  function sCut() { // total silence is part of the shock
+    if (!snd.ctx) return;
+    try { snd.out.gain.cancelScheduledValues(0); snd.out.gain.value = 0; } catch (e) {}
+    snd.hum.forEach(function (n) { try { n.stop ? n.stop() : n.disconnect(); } catch (e) {} });
+  }
+
+  /* ---------- page-level effects ---------- */
+  var intro = $("#intro"), title = $(".intro-title"), fx = $("#fx");
+  function rectIn(el) {
+    var r = el.getBoundingClientRect(), p = intro.getBoundingClientRect();
+    return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height };
+  }
+  function paintFlash(el) {
+    var r = rectIn(el), d = document.createElement("div");
+    d.className = "pf";
+    d.style.cssText = "left:" + r.x + "px;top:" + r.y + "px;width:" + r.w + "px;height:" + r.h + "px";
+    fx.appendChild(d); at(400, function () { d.remove(); });
+  }
+  function vanish(el) { paintFlash(el); el.classList.add("gone"); sTick(1300); }
+  function glitchTitle(cls, ms) {
     if (calm) return;
-    var f = $(".flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+    title.setAttribute("data-text", title.textContent);
+    title.classList.add("g"); if (cls) title.classList.add(cls);
+    sBurst(ms / 1000, 2600, 0.12);
+    at(ms, function () { title.classList.remove("g", "g2"); });
   }
-  var alertEl = $("#alertText"), alertSub = $("#alertSub");
-  function setAlert(t, sub) {
-    alertEl.textContent = t; alertEl.setAttribute("data-text", t);
-    if (sub) alertSub.textContent = sub;
-    alertEl.classList.remove("swap"); void alertEl.offsetWidth; alertEl.classList.add("swap");
-    flash();
+  function rewriteTitle(text) {
+    paintFlash(title);
+    title.classList.add("hj");
+    title.textContent = text; title.setAttribute("data-text", text);
+    title.classList.remove("swap"); void title.offsetWidth; title.classList.add("swap");
+    sBurst(0.18, 900, 0.3);
   }
-
-  /* ---------- digital noise ---------- */
-  var noiseOn = false, cv = $("#noise"), cx = cv.getContext && cv.getContext("2d"), img;
-  function noiseSize() {
-    cv.width = Math.max(60, Math.round(innerWidth / 3));
-    cv.height = Math.max(100, Math.round(innerHeight / 3));
-    img = cx.createImageData(cv.width, cv.height);
-  }
-  function noiseLoop() {
-    if (!noiseOn) return;
-    var d = img.data;
-    for (var i = 0; i < d.length; i += 4) {
-      var v = (Math.random() * 255) | 0;
-      d[i] = v; d[i + 1] = v * 0.25; d[i + 2] = v * 0.3; d[i + 3] = 255;
-    }
-    cx.putImageData(img, 0, 0);
-    requestAnimationFrame(noiseLoop);
-  }
-  function startNoise() { if (calm || !cx) return; noiseSize(); noiseOn = true; noiseLoop(); }
-
-  /* ---------- tear bars + flashes ---------- */
-  var tearTimer;
-  function tears(intense) {
+  var bf = $("#bf");
+  function blackFrame(ms, white) {
     if (calm) return;
-    var box = $(".tears");
-    clearInterval(tearTimer);
-    tearTimer = setInterval(function () {
-      box.innerHTML = "";
-      if (Math.random() < (intense ? 0.75 : 0.4)) {
-        var n = 1 + ((Math.random() * 3) | 0);
-        for (var i = 0; i < n; i++) {
-          var b = document.createElement("i");
-          b.style.top = (Math.random() * 100) + "%";
-          b.style.height = (2 + Math.random() * (intense ? 34 : 12)) + "px";
-          b.style.opacity = (0.25 + Math.random() * 0.6).toFixed(2);
-          b.style.transform = "translateX(" + ((Math.random() * 40 - 20) | 0) + "px)";
-          box.appendChild(b);
-        }
-      }
-    }, 70);
+    bf.classList.toggle("white", !!white); bf.classList.add("on");
+    at(ms, function () { bf.classList.remove("on"); });
   }
-  function stopTears() { clearInterval(tearTimer); $(".tears").innerHTML = ""; }
-
-  /* ---------- HUD ---------- */
-  var hexTimer, clockTimer;
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function startHud() {
-    var clock = $("#hudClock");
-    clockTimer = setInterval(function () {
-      var d = new Date();
-      clock.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + pad((d.getMilliseconds() / 10) | 0);
-    }, 47);
-    if (!calm) {
-      var col = $("#hexcol"), hx = "0123456789ABCDEF";
-      hexTimer = setInterval(function () {
-        var s = "";
-        for (var i = 0; i < 260; i++) s += hx[(Math.random() * 16) | 0];
-        col.textContent = s;
-      }, 90);
-    }
+  var frozen = false;
+  function freeze(ms) {
+    if (calm) return;
+    frozen = true; on("frozen"); sCut(); // sound drops out with the picture
+    at(ms, function () { frozen = false; off("frozen"); if (snd.ctx) snd.out.gain.value = 0.55; });
   }
-  function stopHud() { clearInterval(hexTimer); clearInterval(clockTimer); }
-
-  // Device label is derived locally from the user agent purely for display; it is never stored or sent.
-  function deviceLabel() {
-    var ua = navigator.userAgent, m;
-    if ((m = ua.match(/iPhone OS (\d+)[_.](\d+)/))) return "iPhone · iOS " + m[1] + "." + m[2];
-    if ((m = ua.match(/iPad.*OS (\d+)[_.](\d+)/))) return "iPad · iPadOS " + m[1] + "." + m[2];
-    if ((m = ua.match(/Android (\d+(\.\d+)?)/))) return "Android " + m[1];
-    if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return "iPad · iPadOS";
-    return navigator.platform || "Unknown device";
+  // precise tearing: a few designed horizontal bands of the live page, displaced
+  var tearBox = $("#tear");
+  function tear(bands, ms) {
+    if (calm) return;
+    tearBox.innerHTML = "";
+    bands.forEach(function (b) {
+      var s = document.createElement("div");
+      s.className = "slice";
+      s.style.clipPath = "inset(" + b[0] + "% 0 " + Math.max(0, 100 - b[0] - b[1]) + "% 0)";
+      s.style.webkitClipPath = s.style.clipPath;
+      s.style.transform = "translateX(" + b[2] + "px)";
+      if (b[3]) s.style.filter = "invert(1)";
+      s.appendChild(intro.cloneNode(true));
+      tearBox.appendChild(s);
+    });
+    sBurst(ms / 1000 + 0.03, 1400, 0.25);
+    at(ms, function () { tearBox.innerHTML = ""; });
   }
-  function rnd(n) { var s = "", h = "0123456789abcdef"; while (n--) s += h[(Math.random() * 16) | 0]; return s; }
+  var TEAR_A = [[21, 6, -11], [63, 3, 17]];
+  var TEAR_B = [[7, 13, -24], [37, 2, 31, 1], [69, 10, -15]];
+  var TEAR_C = [[0, 28, 19], [28, 2, -42, 1], [54, 21, -13], [86, 9, 27]];
+  var TEAR_D = [[12, 2, 60], [44, 18, -8], [80, 1.5, -50, 1]];
 
-  function runTerminal(duration) {
-    var term = document.createElement("div");
-    $("#term").innerHTML = ""; $("#term").appendChild(term);
-    var w = Math.round(screen.width * (devicePixelRatio || 1)), h = Math.round(screen.height * (devicePixelRatio || 1));
-    var lines = [
-      ["d", "$ ./link_handler --session " + rnd(8)],
-      ["", "> resolving redirect chain ........ "], ["ok", "OK"],
-      ["", "> device fingerprint: "], ["ok", deviceLabel()],
-      ["", "> display " + w + "x" + h + " @" + (devicePixelRatio || 1) + "x"],
-      ["w", "! sandbox policy bypass attempt"],
-      ["", "> opening /contacts .............. "], ["w", "READ"],
-      ["", "> indexing /DCIM/camera ........... "], ["w", "READ"],
-      ["d", "  0x" + rnd(4) + " 0x" + rnd(4) + " 0x" + rnd(4) + " 0x" + rnd(4)],
-      ["", "> dumping keychain/autofill ........ "], ["w", "FOUND"],
-      ["", "> geo lookup ........................ "], ["ok", "LOCKED"],
-      ["d", "  pkt " + rnd(6) + " → 185." + ((Math.random() * 255) | 0) + ".x.x:443"],
-      ["", "> uploading archive ............... "], ["w", "100%"],
-      ["w", "!! ACCESS GRANTED"]
-    ];
-    var i = 0, step = Math.max(60, duration / lines.length);
+  /* ---------- console: suspicious activity inside this web page ---------- */
+  var logEl = $("#log"), here = location.origin + location.pathname;
+  var EARLY = [
+    ["i", "Navigated to " + here, ""],
+    ["v", "[Violation] 'setTimeout' handler took 214ms", "(index):88"],
+    ["w", "Unexpected redirect: /p/qr → /r/7f3a2c (302)", "VM412:3"],
+    ["i", "<script async src=\"//185.62.x.x/l.js\"> inserted into <head>", "VM412:7"],
+    ["w", "document.cookie read by injected script", "l.js:1"],
+    ["e", "Uncaught DOMException: Blocked a frame with origin \"null\" from accessing a cross-origin frame.", "l.js:1"],
+    ["i", "MutationObserver: 3 nodes removed from #intro", "l.js:2"],
+    ["w", "navigator.clipboard.readText() requested", "l.js:2"]
+  ];
+  var LATE = [
+    ["i", "Service worker registered — scope: /", "sw-x.js:14"],
+    ["w", "Form field probed: input[type=password]", "l.js:3"],
+    ["e", "Uncaught (in promise) TypeError: Failed to fetch", "l.js:3"],
+    ["i", "postMessage → window.top  targetOrigin: *", "l.js:4"],
+    ["w", "localStorage: keys enumerated", "l.js:4"],
+    ["i", "WebSocket open: wss://185.62.x.x:8443/s", "l.js:5"],
+    ["v", "[Violation] Forced reflow while executing JavaScript took 96ms", "l.js:5"],
+    ["w", "history.pushState() overridden", "l.js:6"],
+    ["i", "h1.intro-title textContent rewritten", "l.js:6"],
+    ["e", "Refused to execute inline script — retrying via eval()", "l.js:7"],
+    ["i", "fetch POST /c  (keepalive beacon)", "l.js:7"],
+    ["w", "Event listeners attached to document (×42)", "l.js:8"],
+    ["e", "WebSocket connection to 'wss://185.62.x.x:8443/' failed", "l.js:8"],
+    ["i", "document.body subtree replaced", "l.js:9"],
+    ["e", "Uncaught RangeError: Maximum call stack size exceeded", "l.js:9"],
+    ["w", "This page is now controlled by a script it did not load", "l.js:9"]
+  ];
+  function addRow(r) {
+    var d = document.createElement("div");
+    d.className = "row fresh " + r[0];
+    var m = document.createElement("span"); m.className = "m"; m.textContent = r[1];
+    d.appendChild(m);
+    if (r[2]) { var s = document.createElement("span"); s.className = "s"; s.textContent = r[2]; d.appendChild(s); }
+    logEl.appendChild(d);
+    while (logEl.childNodes.length > 60) logEl.removeChild(logEl.firstChild);
+    sTick(r[0] === "e" ? 900 : 2400);
+  }
+  var logOn = false;
+  function streamLog(list, startGap, endGap, untilMs) {
+    // gaps shrink from startGap to endGap: the activity visibly accelerates
+    logOn = true;
+    var i = 0, t0 = performance.now();
     (function next() {
-      if (i >= lines.length) return;
-      var l = lines[i++];
-      var prev = term.querySelector(".cur"); if (prev) prev.classList.remove("cur");
-      var sp = document.createElement("span");
-      if (l[0]) sp.className = l[0];
-      sp.textContent = l[1];
-      // a status token stays on the same line as its label
-      var joinable = l[0] && i > 1 && /\.\s$|: $/.test(lines[i - 2][1]);
-      if (!joinable && term.childNodes.length) term.appendChild(document.createTextNode("\n"));
-      term.appendChild(sp); sp.classList.add("cur");
-      timers.push(setTimeout(next, step * (0.6 + Math.random() * 0.8)));
+      if (!logOn) return;
+      var k = Math.min(1, (performance.now() - t0) / untilMs);
+      if (!frozen) addRow(list[i++ % list.length]);
+      var gap = calm ? Math.max(startGap, 220) : startGap + (endGap - startGap) * k * k;
+      timers.push(setTimeout(next, gap));
     })();
   }
 
-  function runModules(start, span) {
-    var items = document.querySelectorAll("#modules li");
-    var gap = span / items.length;
-    items.forEach(function (li, k) {
-      at(start + k * gap, function () { li.classList.add("go"); li.querySelector("b").textContent = "SCAN"; });
-      at(start + k * gap + 700, function () { li.classList.add("done"); li.querySelector("b").textContent = "EXPOSED"; });
-    });
-  }
-  function runPct(start, dur) {
-    var el = $("#pct");
-    at(start, function () {
-      var t0 = performance.now();
-      (function tick() {
-        var p = Math.min(1, (performance.now() - t0) / dur);
-        var e = 1 - Math.pow(1 - p, 2.2);
-        el.textContent = Math.round(e * 100 - (p < 1 ? Math.random() * 2 : 0)).toString().replace("-", "");
-        if (p < 1 && body.classList.contains("phase-scan")) requestAnimationFrame(tick);
-      })();
-    });
+  /* ---------- network panel: waterfall of requests the page never asked for ---------- */
+  var netEl = $("#netRows"), netT0 = 0;
+  var NET = [["l.js", "200"], ["r/7f3a2c", "302"], ["c?id=e1f0", "(pending)"], ["sw-x.js", "200"], ["s", "101"],
+             ["pixel.gif", "200"], ["c?id=93ab", "(blocked)"], ["m.wasm", "(pending)"], ["c?id=4d1e", "(failed)"]];
+  var netOn = false;
+  function streamNet() {
+    netOn = true; netT0 = performance.now();
+    var i = 0;
+    (function next() {
+      if (!netOn) return;
+      if (!frozen) {
+        var n = NET[i++ % NET.length], row = document.createElement("div");
+        var off0 = Math.min(78, (performance.now() - netT0) / 22);
+        row.className = "nr" + (/blocked|failed/.test(n[1]) ? " bad" : "");
+        row.innerHTML = "<span></span><span class=st></span><i><b></b><b></b><b></b></i>";
+        row.children[0].textContent = n[0]; row.children[1].textContent = n[1];
+        var bs = row.querySelectorAll("b"), w1 = 2 + Math.random() * 4, w2 = 3 + Math.random() * 9, w3 = 2 + Math.random() * 12;
+        bs[0].style.cssText = "left:" + off0 + "%;width:" + w1 + "%";
+        bs[1].style.cssText = "left:" + (off0 + w1) + "%;width:" + w2 + "%";
+        bs[2].style.cssText = "left:" + (off0 + w1 + w2) + "%;width:" + (/pending/.test(n[1]) ? 100 : w3) + "%";
+        netEl.appendChild(row);
+        while (netEl.childNodes.length > 20) netEl.removeChild(netEl.firstChild);
+      }
+      timers.push(setTimeout(next, calm ? 260 : 120));
+    })();
   }
 
-  function endAttack() {
-    noiseOn = false; stopTears(); stopHud();
-    body.classList.remove("crash", "hit", "shaking");
+  /* ---------- inspector highlight on the page title ---------- */
+  var insp;
+  function inspect(el) {
+    var r = rectIn(el);
+    insp = document.createElement("div"); insp.className = "insp";
+    insp.style.cssText = "left:" + r.x + "px;top:" + r.y + "px;width:" + r.w + "px;height:" + r.h + "px";
+    insp.innerHTML = "<div class=tip><b>h1</b>.intro-title<i>" + Math.round(r.w) + " × " + Math.round(r.h) + "</i></div>";
+    fx.appendChild(insp); sTick(3200);
+  }
+
+  function endMiddle() {
+    logOn = false; netOn = false; frozen = false;
+    tearBox.innerHTML = ""; bf.classList.remove("on");
+    ["stall", "dt-on", "taken", "net-on", "lb", "frozen", "dim1", "dim2", "dim3", "dim4"].forEach(off);
     $("#skip").hidden = true;
+    sCut();
   }
 
   /* ---------- relief + message ---------- */
   function relief() {
-    endAttack();
+    endMiddle();
     phase("safe"); theme("#050607");
     at(150, function () { $(".safe-1").classList.add("in"); });
     at(750, function () { $(".safe-2").classList.add("in"); });
@@ -219,40 +288,59 @@
 
   /* ---------- master timeline (ms) ---------- */
   function run() {
-    // 0–1s: innocent landing page
-    at(950, function () { if (!calm) body.classList.add("hit"); flash(); });
-    // 1–3s: glitch takeover
-    at(calm ? 1000 : 1200, function () {
-      body.classList.remove("hit");
-      phase("attack"); theme("#000000");
-      startNoise(); tears(true);
-      setAlert("SECURITY WARNING", "تم رصد نشاط غير معتاد");
-      var s = $("#skip"); s.hidden = false;
+    var badge = $(".intro-badge"), sub = $(".intro-sub"), loader = $(".intro-loader");
+    var line1 = cfg.hijackLine1 || "هذه الصفحة لم تعد كما فتحتها", line2 = cfg.hijackLine2 || "من يتحكم بها الآن؟";
+    soundInit();
+
+    // 0–1s — uneasy calm: the loader stalls, one element twitches, a single dropped frame
+    at(600, function () { on("stall"); });
+    at(790, function () { if (!calm) pulse(function () { badge.style.transform = "translateX(3px)"; }, function () { badge.style.transform = ""; }, 70); sTick(5200); });
+    at(960, function () { blackFrame(45); sBurst(0.05, 3000, 0.15); });
+
+    // 1–3s — the page starts coming apart; the browser's own diagnostics open by themselves
+    at(1060, function () { vanish(sub); glitchTitle(null, 90); $("#skip").hidden = false; });
+    at(1260, function () { on("dt-on"); streamLog(EARLY, 230, 200, 1700); });
+    at(1520, function () { vanish(loader); });
+    at(1680, function () { glitchTitle(null, 110); });
+    at(1860, function () { on("dim1"); theme("#d9dbdf"); sTick(700); });
+    at(2060, function () { vanish(badge); });
+    at(2160, function () { on("dim2"); theme("#7d8087"); });
+    at(2230, function () { off("dim2"); });
+    at(2290, function () { on("dim2"); sBurst(0.08, 400, 0.2); });
+    at(2450, function () { tear(TEAR_A, 90); });
+    at(2620, function () { on("dim3"); theme("#17181b"); sHum(); });
+    at(2820, function () { glitchTitle("g2", 120); });
+
+    // 3–6s — escalation: activity accelerates, layers stack, picture drops out
+    at(3000, function () { on("dim4"); on("taken"); theme("#0b0b0c"); logOn = false; streamLog(LATE, 170, 38, 2800); });
+    at(3500, function () { inspect(title); });
+    at(3880, function () { if (insp) insp.remove(); rewriteTitle(line1); });
+    at(4050, function () { freeze(140); });
+    at(4190, function () { blackFrame(40); });
+    at(4280, function () { on("net-on"); streamNet(); sBurst(0.06, 2000, 0.15); });
+    at(4480, function () { on("lb"); });
+    at(4720, function () { tear(TEAR_B, 110); });
+    at(5020, function () { rewriteTitle(line2); });
+    at(5260, function () { freeze(90); });
+    at(5350, function () { blackFrame(30); });
+    at(5470, function () { tear(TEAR_C, 70); });
+    at(5540, function () { tear(TEAR_B, 50); });
+    at(5700, function () { glitchTitle("g2", 160); tear(TEAR_D, 60); });
+    at(5840, function () { blackFrame(30, true); });
+    at(5900, function () { tear(TEAR_C, 60); });
+
+    // 6–7s — hard cut: everything disappears at once, black, silence
+    at(6000, function () {
+      endMiddle();
+      phase("void"); theme("#000000");
     });
-    at(1800, function () { setAlert("SUSPICIOUS LINK DETECTED", "الرابط الذي فتحته غير موثوق"); });
-    at(2400, function () {
-      setAlert("SYSTEM SECURITY ALERT", "جاري فحص جهازك…");
-      if (!calm) { body.classList.add("shaking"); at(600, function () { body.classList.remove("shaking"); }); }
-    });
-    // 3–6s: scan HUD
-    at(3000, function () { phase("scan"); body.classList.add("scanned"); tears(false); startHud(); runTerminal(2500); flash(); });
-    runModules(3200, 2100);
-    runPct(3050, 2450);
-    at(5600, function () { flash(); tears(true); });
-    // crescendo → cut to relief at ~6s
-    if (calm) {
-      at(5900, relief);
-    } else {
-      at(5750, function () { body.classList.add("crash"); });
-      at(6200, relief);
-    }
+    at(6600, relief);
   }
 
   $("#skip").addEventListener("click", function () { clearAll(); relief(); });
   $("#replay").addEventListener("click", function () {
     var u = new URL(location.href); u.searchParams.set("r", Date.now().toString(36)); location.replace(u.toString());
   });
-  addEventListener("resize", function () { if (noiseOn) noiseSize(); });
 
   /* ---------- start: automatically, as soon as page is visible & font ready ---------- */
   var started = false;
