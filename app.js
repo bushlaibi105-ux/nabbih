@@ -180,32 +180,20 @@
     sTick(1100);
   }
 
-  /* ---------- black: terse event log ---------- */
+  /* ---------- a quarter-second dark digital flash (noise + one faint technical glimpse) ---------- */
   var blog = $("#blog"), logOn = false;
-  var EVENTS = [
-    ["connect", "reset"], ["redirect", "/r/7f3a2c"], ["script", "l.js blocked", 1], ["session", "invalid", 1],
-    ["origin", "mismatch"], ["frame", "detached"], ["retry", "1/3"], ["retry", "2/3"], ["socket", "185.62.x.x"],
-    ["dom", "rewritten"], ["session", "reset", 1], ["redirect", "/r/9c01"], ["storage", "cleared"],
-    ["frame", "reloaded"], ["policy", "violation", 1], ["retry", "3/3"], ["page", "not responding", 1]
-  ];
-  function pad(n, l) { n = String(n); while (n.length < (l || 2)) n = "0" + n; return n; }
-  function stamp() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + pad(d.getMilliseconds(), 3); }
-  function runLog(gap) {
-    logOn = true; var i = 0;
-    (function next() {
-      if (!logOn) return;
-      if (!frozen && i < EVENTS.length) {
-        var e = EVENTS[i++], p = document.createElement("p");
-        if (e[2]) p.className = "e";
-        p.innerHTML = "<span></span><b></b><i></i>";
-        p.children[0].textContent = stamp(); p.children[1].textContent = e[0]; p.children[2].textContent = e[1];
-        p.children[2].style.fontStyle = "normal";
-        blog.appendChild(p);
-        while (blog.children.length > 9) blog.removeChild(blog.firstChild);
-        sTick(e[2] ? 800 : 2400);
-      }
-      timers.push(setTimeout(next, gap));
-    })();
+  function noiseTile() { // small grey grain tile, generated locally
+    try {
+      var c = document.createElement("canvas"); c.width = c.height = 96;
+      var x = c.getContext("2d"), d = x.createImageData(96, 96);
+      for (var i = 0; i < d.data.length; i += 4) { var v = (Math.random() * 255) | 0; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 46; }
+      x.putImageData(d, 0, 0);
+      document.documentElement.style.setProperty("--grain", "url(" + c.toDataURL() + ")");
+    } catch (e) {}
+  }
+  function digitalFlash() {
+    blog.innerHTML = "<p>net::ERR_CONNECTION_RESET</p>";
+    sBurst(0.22, 1200, 0.22);
   }
 
   function endMiddle() {
@@ -229,14 +217,14 @@
   /* ---------- master timeline (ms) ----------
      0.0–2.0  participation page, untouched
      2.0–4.0  the page stalls; centred alert cards appear one after another over a dimmed page
-     4.0–4.7  quick cut: black with a fast technical log
-     4.7–5.2  FREEZE: the picture stops dead (visual only)
-     5.2–7.2  pure black — no text, no motion
-     7.2→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
+     4.0–4.25 dark digital flash: grain, a torn line, one faint technical glimpse
+     4.25–4.75 FREEZE: the picture stops dead (visual only)
+     4.75–6.75 pure black — no text, no motion
+     6.75→    "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
   function run() {
     var badge = $(".intro-badge"), sub = $(".intro-sub");
     on("run");
-    soundInit();
+    soundInit(); noiseTile();
 
     // 2.0–4.0 — the page stops behaving; alerts take the centre of the screen
     at(2000, function () { on("stall"); sub.textContent = cfg.stallText || "تعذّر تحميل الصفحة"; glitchTitle(null, 80); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
@@ -252,15 +240,15 @@
     at(3840, function () { glitchTitle("g2", 100); tear(TEAR_B, 60); });
     at(3940, function () { blackFrame(40); });
 
-    // 4.0–4.7 — a quick, sudden flash of technical log on black
-    at(4000, function () { on("dim4"); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); runLog(calm ? 90 : 45); });
+    // 4.0–4.25 — a quarter-second dark digital flash
+    at(4000, function () { on("dim4"); digitalFlash(); on("blogging"); winsEl.innerHTML = ""; theme("#000000"); });
 
-    // 4.7–5.2 — the freeze
-    at(4700, function () { hang(500); });
-    // 5.2–7.2 — black, still, silent
-    at(5200, function () { endMiddle(); phase("void"); theme("#000000"); });
-    // 7.2 — reassurance
-    at(7200, relief);
+    // 4.25–4.75 — the freeze (holds the flash's last frame)
+    at(4250, function () { hang(500); });
+    // 4.75–6.75 — black, still, silent
+    at(4750, function () { endMiddle(); phase("void"); theme("#000000"); });
+    // 6.75 — reassurance
+    at(6750, relief);
   }
 
   $("#skip").addEventListener("click", function () { clearAll(); relief(); });
