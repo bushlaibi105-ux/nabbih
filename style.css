@@ -69,9 +69,9 @@ body:not(.phase-intro){background:#000}
 .nojs{position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;font-size:22px;line-height:1.6;z-index:99}
 
 /* ===================================================================
-   MIDDLE SCENE — Browser Takeover Simulation (2.0s → 4.7s, freeze to 5.2s).
+   MIDDLE SCENE — Browser Takeover Simulation (2.0s → 4.25s, freeze to 4.75s).
    The page stalls, centred alert cards take over a dimmed page, then a
-   0.7s flash of technical log on black. In-page layers only.
+   0.25s dark digital flash. In-page layers only.
    =================================================================== */
 #intro{--ink:#0a0a0c}
 .intro-title,.intro-badge,.intro-sub,.intro-loader{transition:none}
@@ -149,16 +149,17 @@ body:not(.phase-intro){background:#000}
 .calm .ios,.calm .ios.back{animation:none}
 .calm .ios.back{display:none}
 
-/* black: terse event log */
-.blog{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;justify-content:center;
-  padding:0 max(22px,6vw);direction:ltr;text-align:left;font:12.5px/1.75 var(--mono);color:#6f747b;background:#000}
-.blogging .blog{display:flex}
-.blogging #intro > :not(.blog){visibility:hidden}
-.blog p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.blog p span{display:inline-block;width:14ch;color:#4a4e54}
-.blog p b{font-weight:400;display:inline-block;width:10ch;color:#9aa0a6}
-.blog p.e b{color:#ff6b6b}
-.blog p:last-child{color:#e8eaed}
-.blog p:last-child::after{content:"";display:inline-block;width:.55em;height:1em;margin-left:4px;vertical-align:-2px;background:#e8eaed;animation:cur .5s steps(2) infinite}
-@keyframes cur{50%{opacity:0}}
+/* 0.25s dark digital flash: grain, one torn line, a single faint technical glimpse */
+.blog{position:absolute;inset:0;z-index:6;display:none;overflow:hidden;background:#050506;direction:ltr;text-align:left}
+.blogging .blog{display:block;animation:dflash .25s steps(1) both}
+@keyframes dflash{0%{background-color:#232427}16%{background-color:#000}40%{background-color:#0b0b0c}68%{background-color:#060607}100%{background-color:#050506}}
+.blog::before{content:"";position:absolute;inset:-12%;background-image:var(--grain,none);background-size:96px 96px;opacity:.4;animation:grain .25s steps(4) infinite}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-7%,4%)}50%{transform:translate(5%,-6%)}75%{transform:translate(-3%,7%)}}
+.blog::after{content:"";position:absolute;left:0;right:0;top:43%;height:2px;background:#ffffff1c;box-shadow:0 9px 0 -1px #ffffff0d;animation:tline .25s steps(2) both}
+@keyframes tline{0%{transform:translateX(-9%)}50%{transform:translateX(6%);top:61%}100%{transform:translateX(-2%);top:52%}}
+.blog p{position:absolute;left:9%;top:57%;font:11px/1 var(--mono);letter-spacing:.06em;color:#3b3e43;white-space:nowrap;
+  clip-path:inset(0 0 35% 0);transform:translateX(-3px)}
+.frozen .blog::before,.frozen .blog::after{animation-play-state:paused}
+.calm .blog::before{opacity:.35}
 
+.blogging #intro > :not(.blog){visibility:hidden}
