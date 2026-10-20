@@ -1,0 +1,89 @@
+name: Publish & verify
+
+# main is the source of truth. This copies the site to the gh-pages branch
+# (which GitHub Pages serves), then checks the PUBLIC URL from outside.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync site to gh-pages
+        run: |
+          mkdir /tmp/site
+          cp -r index.html style.css app.js config.json assets qr .nojekyll /tmp/site/
+          echo "$GITHUB_SHA" > /tmp/site/build.txt
+          git fetch origin gh-pages --depth 1
+          git checkout -B gh-pages origin/gh-pages
+          git rm -rq . && git clean -fdq
+          cp -r /tmp/site/. .
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Publish $GITHUB_SHA" || echo "nothing to change"
+          git push origin gh-pages
+
+  verify:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until the public URL serves this commit
+        run: |
+          BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          echo "BASE=$BASE" >> "$GITHUB_ENV"
+          for i in $(seq 1 40); do
+            live=$(curl -s "${BASE}build.txt?nc=$RANDOM" || true)
+            [ "$live" = "$GITHUB_SHA" ] && echo "live build matches $GITHUB_SHA" && break
+            echo "attempt $i: live='$live'"; sleep 15
+          done
+          [ "$(curl -s "${BASE}build.txt?nc=$RANDOM")" = "$GITHUB_SHA" ]
+      - name: Check every file over HTTPS (anonymous, no cookies)
+        run: |
+          curl -sSI "$BASE" | head -5
+          for f in "" style.css app.js config.json assets/fonts/saudi-bold.woff2 assets/fonts/saudi-regular.woff2 assets/favicon.svg qr/nabbih-qr.png qr/nabbih-qr.svg; do
+            r=$(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}B' "$BASE$f")
+            echo "/$f -> $r"; case "$r" in 200*) ;; *) exit 1;; esac
+          done
+          curl -s "$BASE" | grep -q 'مبادرة نبّه'
+      - name: Open the live page on iPhone and Android profiles
+        run: |
+          mkdir t && cd t && npm init -y >/dev/null && npm i -s playwright@1.56.1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          cat > check.js <<'JS'
+          const { chromium, devices } = require('playwright');
+          (async () => {
+            const b = await chromium.launch();
+            let ok = true;
+            for (const d of ['iPhone 13', 'iPhone SE', 'Pixel 7', 'Galaxy S9+']) {
+              const ctx = await b.newContext({ ...devices[d] });
+              const p = await ctx.newPage(); const errs = [];
+              p.on('pageerror', e => errs.push(e.message));
+              await p.goto(process.env.BASE);
+              const buttonsAtStart = await p.locator('button:visible').count();
+              const intro = await p.locator('body').getAttribute('class');
+              await p.waitForTimeout(2500);
+              const attack = await p.locator('body').getAttribute('class');
+              await p.waitForTimeout(5500);
+              const safe = await p.locator('body').getAttribute('class');
+              await p.waitForTimeout(5500);
+              const fin = await p.locator('body').getAttribute('class');
+              const brand = await p.locator('#brand').isVisible();
+              const fits = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+              const pass = /phase-intro/.test(intro) && buttonsAtStart === 0 && /phase-(attack|scan)/.test(attack)
+                && /phase-safe/.test(safe) && /phase-final/.test(fin) && brand && fits && errs.length === 0;
+              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: start=[${intro}] buttonsAtStart=${buttonsAtStart} t2.5=[${attack}] t8=[${safe}] t13.5=[${fin}] brand=${brand} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
+              ok = ok && pass; await ctx.close();
+            }
+            await b.close(); process.exit(ok ? 0 : 1);
+          })();
+          JS
+          node check.js
