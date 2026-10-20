@@ -16,8 +16,9 @@
   <meta property="og:title" content="شارك معنا في مبادرة نبّه">
   <meta property="og:description" content="مشاركة بسيطة — نادي الذكاء الاصطناعي">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="preload" href="assets/fonts/saudi-bold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body class="phase-intro">
   <main id="stage" aria-live="polite">
@@ -45,7 +46,6 @@
         <div class="dt-head"><span>Elements</span><span class="on">Console</span><span>Sources</span><span>Network</span><span>Application</span></div>
         <div class="dt-bar"><span>top ▾</span><em>Filter</em><span>All levels ▾</span></div>
         <div class="dt-log" id="log"></div>
-        <div class="src" id="src"></div>
       </div>
     </section>
 
@@ -59,6 +59,7 @@
       </div>
       <h2 class="safe-1 reveal" data-cfg="safeLine1">لا تخاف، جهازك آمن.</h2>
       <p class="safe-2 reveal" data-cfg="safeLine2">هذه مجرد محاكاة توعوية</p>
+      <div class="safe-club reveal" data-cfg="clubName">نادي الذكاء الاصطناعي</div>
       <button id="replay" class="replay" type="button" hidden>↻ إعادة التجربة</button>
     </section>
 
@@ -66,10 +67,9 @@
 
   <div id="tear" aria-hidden="true"></div>
   <div id="bf" aria-hidden="true"></div>
-  <div class="dbg" id="dbg" aria-hidden="true"><span>Paused in debugger</span><i>▶</i><i>⤼</i></div>
   <button id="skip" class="skip" type="button" hidden>تخطي المشهد ‹</button>
   <noscript><div class="nojs">لا تخاف، جهازك آمن — هذه مجرد محاكاة توعوية.</div></noscript>
 
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 </body>
 </html>

