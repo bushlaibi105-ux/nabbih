@@ -50,7 +50,7 @@ jobs:
       - name: Check every file over HTTPS (anonymous, no cookies)
         run: |
           curl -sSI "$BASE" | head -5
-          for f in "" style.css app.js config.json manifest.webmanifest assets/fonts/saudi-bold.woff2 assets/fonts/saudi-regular.woff2 assets/favicon.svg qr/nabbih-qr.png qr/nabbih-qr.svg; do
+          for f in "" style.css app.js config.json manifest.webmanifest assets/icon-180.png assets/icon-192.png assets/icon-512.png assets/fonts/saudi-bold.woff2 assets/fonts/saudi-regular.woff2 assets/favicon.svg qr/nabbih-qr.png qr/nabbih-qr.svg; do
             r=$(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}B' "$BASE$f")
             echo "/$f -> $r"; case "$r" in 200*) ;; *) exit 1;; esac
           done
@@ -78,18 +78,21 @@ jobs:
               p.on('pageerror', e => errs.push(e.message));
               await p.goto(process.env.BASE);
               const buttonsAtStart = await p.locator('button:visible').count();
-              await p.waitForTimeout(25000);
+              await p.waitForTimeout(20000);
               const log = await p.evaluate(() => window.__log);
               const first = re => { const e = log.find(([, c]) => re.test(c)); return e ? e[0] : -1; };
-              const t = { devtools: first(/dt-on/), dark: first(/dim3/), takeover: first(/taken/), cut: first(/phase-void/), safe: first(/phase-safe/) };
+              const r0 = first(/\brun\b/);
+              const at = re => { const v = first(re); return v < 0 ? -1 : v - r0; };
+              const t = { attack: at(/stall/), freeze: at(/\bhang\b/), black: at(/phase-void/), safe: at(/phase-safe/) };
               const endsOnSafe = /phase-safe/.test(log[log.length - 1][1]) && first(/phase-final/) === -1;
               const noFinal = (await p.locator('#final').count()) === 0;
-              const reassure = await p.locator('.safe-2').isVisible();
+              const reassure = (await p.locator('.safe-2').isVisible()) && (await p.locator('.safe-club').isVisible());
               const fill = await p.evaluate(() => { const r = document.getElementById('stage').getBoundingClientRect(); return r.top <= 0 && r.left <= 0 && r.width >= innerWidth && r.height >= innerHeight; });
                             const fits = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
-              const order = t.devtools > 3000 && t.devtools < t.dark && t.dark < t.takeover && t.takeover < t.cut && t.cut - t.takeover > 7000 && t.cut < t.safe;
+              const near = (v, want, tol) => Math.abs(v - want) <= tol;
+              const order = r0 >= 0 && near(t.attack, 2000, 250) && near(t.freeze, 5000, 250) && near(t.black - t.freeze, 500, 150) && near(t.safe - t.black, 2000, 250);
               const pass = buttonsAtStart === 0 && order && endsOnSafe && noFinal && reassure && fill && fits && errs.length === 0;
-              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} ms=${JSON.stringify(t)} stillOnSafeAt25s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
+              console.log(`${pass ? 'PASS' : 'FAIL'} ${d}: buttonsAtStart=${buttonsAtStart} msFromStart=${JSON.stringify(t)} stillOnSafeAt20s=${endsOnSafe} finalScreenRemoved=${noFinal} reassuranceVisible=${reassure} fillsViewport=${fill} noHScroll=${fits} errors=${JSON.stringify(errs)}`);
               ok = ok && pass; await ctx.close();
             }
             await b.close(); process.exit(ok ? 0 : 1);
