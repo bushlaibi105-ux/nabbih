@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Collect site files
+        run: |
+          mkdir _site
+          cp -r index.html style.css app.js config.json assets qr .nojekyll _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the public URL
+        run: |
+          BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o page.html -w '%{http_code}' "$BASE") && [ "$code" = 200 ] && grep -q 'مبادرة نبّه' page.html && break
+            echo "attempt $i: HTTP $code, retrying"; sleep 15
+          done
+          echo "index: $(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$BASE")"
+          for f in style.css app.js config.json assets/fonts/saudi-bold.woff2 qr/nabbih-qr.png; do
+            echo "$f: $(curl -s -o /dev/null -w '%{http_code} %{size_download}B' "$BASE$f")"
+            [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE$f")" = 200 ] || exit 1
+          done
+          grep -q 'مبادرة نبّه' page.html && echo "LIVE OK: $BASE"

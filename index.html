@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f7">
+  <meta name="color-scheme" content="light dark">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="robots" content="noindex">
+  <title>شارك معنا | مبادرة نبّه</title>
+  <meta name="description" content="مبادرة نبّه — نادي الذكاء الاصطناعي">
+  <meta property="og:title" content="شارك معنا في مبادرة نبّه">
+  <meta property="og:description" content="مشاركة بسيطة — نادي الذكاء الاصطناعي">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/saudi-bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body class="phase-intro">
+  <main id="stage" aria-live="polite">
+
+    <!-- 0–1s : innocent landing page -->
+    <section id="intro" class="scene">
+      <div class="intro-card">
+        <div class="intro-badge" data-cfg="clubName">نادي الذكاء الاصطناعي</div>
+        <h1 class="intro-title" data-cfg="introTitle">شارك معنا في مبادرة نبّه</h1>
+        <p class="intro-sub" data-cfg="introSubtitle">لحظات وتبدأ المشاركة…</p>
+        <div class="intro-loader"><span></span></div>
+      </div>
+    </section>
+
+    <!-- 1–6s : simulated attack -->
+    <section id="attack" class="scene" aria-hidden="true">
+      <canvas id="noise"></canvas>
+      <div class="grid-bg"></div>
+      <div class="scanlines"></div>
+      <div class="tears"></div>
+
+      <div class="alert-wrap">
+        <div class="alert-icon">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 5 61 57H3Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 24v16" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="48" r="3.2" fill="currentColor"/></svg>
+        </div>
+        <div id="alertText" class="glitch" data-text="SECURITY WARNING">SECURITY WARNING</div>
+        <div id="alertSub" class="alert-sub">تم رصد نشاط غير معتاد</div>
+      </div>
+
+      <div class="hud">
+        <div class="hud-top">
+          <span class="dot"></span><span class="mono">THREAT&nbsp;LEVEL:&nbsp;<b>CRITICAL</b></span>
+          <span class="mono hud-clock" id="hudClock">00:00:00</span>
+        </div>
+
+        <div class="radar">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle cx="100" cy="100" r="96" class="r1"/>
+            <circle cx="100" cy="100" r="70" class="r2"/>
+            <circle cx="100" cy="100" r="44" class="r3"/>
+            <path d="M100 0v200M0 100h200" class="cross"/>
+            <circle cx="100" cy="100" r="86" class="dash"/>
+          </svg>
+          <div class="sweep"></div>
+          <div class="blip b1"></div><div class="blip b2"></div><div class="blip b3"></div>
+          <div class="radar-pct"><span id="pct">0</span><small>%</small></div>
+          <div class="radar-label mono">DEEP SCAN</div>
+        </div>
+
+        <ul class="modules mono" id="modules">
+          <li data-at="0"><span>CONTACTS</span><i><em></em></i><b>…</b></li>
+          <li data-at="1"><span>PHOTOS</span><i><em></em></i><b>…</b></li>
+          <li data-at="2"><span>MESSAGES</span><i><em></em></i><b>…</b></li>
+          <li data-at="3"><span>SAVED&nbsp;LOGINS</span><i><em></em></i><b>…</b></li>
+          <li data-at="4"><span>LOCATION</span><i><em></em></i><b>…</b></li>
+        </ul>
+
+        <pre class="term mono" id="term" dir="ltr"></pre>
+      </div>
+
+      <div class="hexcol mono" id="hexcol" dir="ltr" aria-hidden="true"></div>
+      <div class="vignette"></div>
+      <div class="flash"></div>
+    </section>
+
+    <!-- 6–9s : relief -->
+    <section id="safe" class="scene">
+      <div class="shield">
+        <svg viewBox="0 0 120 140" aria-hidden="true">
+          <path class="sh" d="M60 6 110 24v40c0 34-21 58-50 70C31 122 10 98 10 64V24Z"/>
+          <path class="ck" d="M38 70l15 15 30-32"/>
+        </svg>
+      </div>
+      <h2 class="safe-1 reveal" data-cfg="safeLine1">لا تخاف، جهازك آمن.</h2>
+      <p class="safe-2 reveal" data-cfg="safeLine2">هذه مجرد محاكاة توعوية</p>
+      <p class="safe-3 reveal" data-cfg-html="safeLine3">تخيل لو كان الرابط <mark>خبيثًا</mark> فعلًا؟</p>
+    </section>
+
+    <!-- 9–12s : message + brand -->
+    <section id="final" class="scene">
+      <div class="final-lines">
+        <p class="f1 reveal" data-cfg="finalLine1">مو كل QR Code آمن</p>
+        <p class="f2 reveal" data-cfg="finalLine2">تأكد قبل ما تمسح</p>
+        <p class="f3 reveal" data-cfg="finalLine3">خلك نبّه</p>
+      </div>
+      <div class="brand reveal" id="brand">
+        <img id="brandLogo" alt="" hidden>
+        <div id="brandWord" class="brand-word">
+          <div class="bw-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><path d="M4 32s10-18 28-18 28 18 28 18-10 18-28 18S4 32 4 32Z" fill="none" stroke="currentColor" stroke-width="3.5"/><circle cx="32" cy="32" r="9" fill="currentColor"/><circle cx="35" cy="29" r="2.6" fill="#000"/></svg>
+          </div>
+          <div class="bw-text" data-cfg="brandName">نبّه</div>
+        </div>
+        <div class="brand-tag" data-cfg="brandTagline">معرض التوعية بالأمن السيبراني</div>
+        <div class="brand-club" data-cfg="clubName">نادي الذكاء الاصطناعي</div>
+      </div>
+      <button id="replay" class="replay" type="button" hidden>↻ إعادة التجربة</button>
+    </section>
+
+  </main>
+
+  <button id="skip" class="skip" type="button" hidden>تخطي المؤثرات ‹</button>
+  <noscript><div class="nojs">لا تخاف، جهازك آمن — هذه مجرد محاكاة توعوية من معرض «نبّه». مو كل QR Code آمن، تأكد قبل ما تمسح. خلك نبّه.</div></noscript>
+
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>
