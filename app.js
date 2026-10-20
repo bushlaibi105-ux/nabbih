@@ -217,8 +217,8 @@
      2.0–4.0  the page stalls; centred alert cards appear one after another over a dimmed page
      4.0–4.25 dark digital flash: grain, a torn line, one faint technical glimpse
      4.25–4.75 FREEZE: the picture stops dead (visual only)
-     4.75–6.75 pure black — no text, no motion
-     6.75→    "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
+     4.75–5.35 pure black — no text, no motion
+     5.35→    "لا تخاف، جهازك آمن" — stays until the visitor leaves or replays */
   function run() {
     var badge = $(".intro-badge"), sub = $(".intro-sub");
     on("run");
@@ -243,10 +243,10 @@
 
     // 4.25–4.75 — the freeze (holds the flash's last frame)
     at(4250, function () { hang(500); });
-    // 4.75–6.75 — black, still, silent
+    // 4.75–5.35 — black, still, silent
     at(4750, function () { endMiddle(); phase("void"); theme("#000000"); });
-    // 6.75 — reassurance
-    at(6750, relief);
+    // 5.35 — reassurance
+    at(5350, relief);
   }
 
   $("#replay").addEventListener("click", function () {
